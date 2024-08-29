@@ -14,5 +14,6 @@ ENV/
 env.bak/
 venv.bak/
 
-# IDE config
+# Configs
 .vscode/
+config.json
