@@ -1,1 +1,1 @@
-websockets
+websockets==9.1
