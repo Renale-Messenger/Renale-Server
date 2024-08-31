@@ -1,3 +1,5 @@
+# TODO: FIXME: use an actual config solution
+
 host: str = "localhost"
 port: int = 3306
 user: str = "user"
