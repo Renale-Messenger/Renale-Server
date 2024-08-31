@@ -23,12 +23,12 @@ class Session:
         release = self.release
 
         return f"""
-        Session info:
-        {version = !r}
-        {system = !r}
-        {architecture = !r}
-        {release = !r}
-        """
+Session info:
+{version = !r}
+{system = !r}
+{architecture = !r}
+{release = !r}
+""".strip()
 
 
 class Database:
