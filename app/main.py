@@ -1,10 +1,9 @@
 from platform import version, system, architecture, release
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple
 from pathlib import Path
 import asyncio
 import socket
 import json
-import time
 
 from app.database import Session, Database
 from app.types import Json
