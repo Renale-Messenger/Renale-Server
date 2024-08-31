@@ -106,7 +106,7 @@ class RenaleServer:
     # region GET funcs
     def main(self) -> str:
         """Возвращает главную HTML-страницу."""
-        with open(Path(".", "static", "main.html"), "r") as f:
+        with open(Path(".", "static", "index.html"), "r") as f:
             return f.read()
 
     def status(self) -> Json:
