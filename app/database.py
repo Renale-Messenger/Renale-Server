@@ -35,11 +35,11 @@ class Database:
     def __init__(self) -> None:
         try:
             self.connection: Connection = conn(
-                host=config.host,
-                port=config.port,
-                user=config.user.get_secret_value(),
-                password=config.password.get_secret_value(),
-                db=config.db,
+                host=config.mysql_host,
+                port=config.mysql_port,
+                user=config.mysql_user.get_secret_value(),
+                password=config.mysql_password.get_secret_value(),
+                db=config.mysql_db,
                 cursorclass=cursors.DictCursor,
             )
         except OperationalError as e:
