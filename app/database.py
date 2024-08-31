@@ -1,10 +1,12 @@
 from pymysql import Connection, connect as conn, cursors, OperationalError
 from time import time as timestamp
-from typing import List, Self
+from typing import Any, Dict, List, Literal, Self
 from json import dumps, loads
 
-from app.config import host, port, user, password, db
+from app.config import config
 from app.types import Json
+
+__all__: List[str] = ["Database", "Session"]
 
 
 class Session:
@@ -29,18 +31,15 @@ class Session:
         """
 
 
-__all__ = ["Database"]
-
-
 class Database:
     def __init__(self) -> None:
         try:
             self.connection: Connection = conn(
-                host=host,
-                port=port,
-                user=user,
-                password=password,
-                db=db,
+                host=config.host,
+                port=config.port,
+                user=config.user.get_secret_value(),
+                password=config.password.get_secret_value(),
+                db=config.db,
                 cursorclass=cursors.DictCursor,
             )
         except OperationalError as e:
@@ -127,7 +126,7 @@ class Database:
 
     # endregion
     # region GET MESSAGE
-    def get_messages(self, limit: int = 50):
+    def get_messages(self, limit: int = 50) -> Dict[Literal["messages"], List[Dict[str, Any]]]:
         limit = int(limit)
         with self.connection.cursor() as sql:
             sql.execute("SELECT * FROM messages ORDER BY time DESC LIMIT %s", (limit,))
@@ -148,7 +147,7 @@ class Database:
 
     # endregion
     # region SEND MESSAGE
-    def send_message(self, chat: Json, user: Json, text: str):
+    def send_message(self, chat: Json, user: Json, text: str) -> None:
         with self.connection.cursor() as sql:
             sql.execute(
                 "INSERT INTO messages (chat, user, text, time) VALUES (%s, %s, %s, %s)",
@@ -169,10 +168,9 @@ class Database:
     # endregion
 
 
-if __name__ == "__main__":
-    try:
-        base = Database()
-    except OperationalError:
-        print("Error connecting to database.")
-        print("Reconnect...")
-        base = Database()
+try:
+    base = Database()
+except OperationalError:
+    print("Error connecting to database.")
+    print("Reconnect...")
+    base = Database()

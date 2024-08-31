@@ -1,5 +1,5 @@
-from typing import Any, Dict
+from typing import Any, Dict, List, Union
 
 __all__ = ["Json"]
 
-Json = Dict[str, Any]
+Json = Union[Dict[str, Any], List[Any]]
