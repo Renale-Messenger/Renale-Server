@@ -2,12 +2,11 @@ from time import time as timestamp
 from random import randint
 from typing import List
 
-from tupes import Json
-from database import Database
+from app.types import Json
+from app.database import Database
 
 
 __all__ = ["User"]
-
 
 
 class User:
@@ -17,12 +16,12 @@ class User:
     _id: int
     sessions: List
 
-    #region GET funcs
+    # region GET funcs
     def get_user(self, id: int) -> Json:
         pass
 
-    #endregion
-    #region POST funcs
+    # endregion
+    # region POST funcs
     def sign_up(self, name: str, password: str) -> bool:
         self.token = self.generate_token
         self.id = self.generate_id
@@ -30,7 +29,7 @@ class User:
             "version": "1.0",
             "system": "Linux",
             "architecture": "x86_64",
-            "release": "18.04.5 LTS"
+            "release": "18.04.5 LTS",
         }
 
         with Database() as db:
@@ -49,8 +48,9 @@ class User:
 
     def sign_out(self) -> None:
         pass
-    #endregion
-    #region Other funcs
+
+    # endregion
+    # region Other funcs
     def update_password(self, old_pass: str, new_pass: str) -> bool:
         if self.password == old_pass:
             self.password = new_pass
