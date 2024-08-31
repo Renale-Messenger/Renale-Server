@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Simple Socket Server</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
+</head>
+<body>
+    <heading><h1 id="greeting">Hello, Admin!</h1></heading>
+    <div class="container">
+        <div class="buttons">
+            <a href="/send"><button>Send</button></a>
+            <a href="/messages?limit=50"><button>Messages</button></a>
+            <a href="/chats?limit=50"><button>Chats</button></a>
+            <a href="/users?limit=50"><button>Users</button></a>
+            <a href="/status"><button>Status</button></a>
+        </div>
+    </div>
+    <style>
+        body{
+            background-color: #000000;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            align-items: center;
+            flex-flow: column;
+        }
+        h1{
+            color: #1aff00;
+            font-family: "Audiowide", sans-serif;
+            font-weight: 400;
+            font-style: normal;
+        }
+        a{
+            background-color: #000000;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            
+        }
+        .buttons {
+            align-items: center;
+            left: 50%;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+        .buttons button {
+            font-size: 30px;
+            position: relative;
+            background-color: #000000;
+            color: #1aff00;
+            border-color: #1aff00;
+            padding: 10px 20px;
+            font-family: "Audiowide", sans-serif;
+            font-weight: 400;
+            font-style: normal;
+            margin: 5px;
+            cursor: pointer;
+        }
+        #greeting {
+            font-size: 75px;
+            text-align: center;
+            font-family: "Audiowide", sans-serif;
+            font-weight: 400;
+            font-style: normal;
+        }
+    </style>
+</body>
+</html>

@@ -17,3 +17,4 @@ venv.bak/
 # Configs
 .vscode/
 config.json
+config.ini
