@@ -1,5 +1,5 @@
 from platform import version, system, architecture, release
-from typing import Dict, Tuple
+from typing import Any, Dict, Tuple, cast
 from pathlib import Path
 import asyncio
 import socket
@@ -57,7 +57,8 @@ class RenaleServer:
         response_data: str | Json = ""
         route_data = route.split("?", maxsplit=1)
         route_name = route_data[0]
-        route_data = route_data[1] if len(route_data) - 1 else ""
+        # TODO: unused...?
+        # route_data = route_data[1] if len(route_data) - 1 else ""
         match method:
             case "GET":
                 match route_name:
@@ -109,13 +110,13 @@ class RenaleServer:
             return f.read()
 
     def status(self) -> Json:
-        return {"status": "ok", "message_count": 50}
+        return {"status": True, "message_count": 50}
 
     async def get_messages(self, route: str) -> Dict[str, str | Json]:
         try:
             query = route.split("?")[1] if "?" in route else ""
             params = dict(qc.split("=") for qc in query.split("&") if "=" in qc)
-            limit = float(params.get("limit", 50))
+            limit = int(params.get("limit", 50))
         except (ValueError, IndexError):
             return {"error": "Invalid or missing limit parameter"}
 
@@ -126,7 +127,7 @@ class RenaleServer:
         try:
             query = route.split("?")[1] if "?" in route else ""
             params = dict(qc.split("=") for qc in query.split("&") if "=" in qc)
-            limit = float(params.get("limit", 50))
+            limit = int(params.get("limit", 50))
         except (ValueError, IndexError):
             return {"error": "Invalid or missing limit parameter"}
 
@@ -137,7 +138,7 @@ class RenaleServer:
         try:
             query = route.split("?")[1] if "?" in route else ""
             params = dict(qc.split("=") for qc in query.split("&") if "=" in qc)
-            limit = float(params.get("limit", 50))
+            limit = int(params.get("limit", 50))
         except (ValueError, IndexError):
             return {"error": "Invalid or missing limit parameter"}
 
@@ -153,62 +154,67 @@ class RenaleServer:
             chat: Json = data["chat"]
             user_id: Json = data["id"]
             text: str = data["text"]
+            with Database() as db:
+                chat_list = cast(Dict[str, Any], db.get_chats(999999))[
+                    "chats"
+                ]  # FIXME: i don wanna limit
 
             if chat not in chat_list:
-                return {"status": "error", "message": "Chat not found."}
+                return {"status": False, "message": "Chat not found."}
 
             if not user_id or not text:
-                return {"status": "error", "message": "ID and text are required."}
+                return {"status": False, "message": "ID and text are required."}
 
-            with Database() as db:
-                user = db.get_user_by_id(user_id)
-
-            return {"status": "ok", "message": message}
+            return {"status": True}
         except json.JSONDecodeError:
-            return {"status": "error", "message": "Invalid JSON"}
+            return {"status": False, "message": "Invalid JSON"}
 
     async def create_chat(self, body: str) -> Json:
-        return self.publish("404 Not Found", status_code=404)
-        """Добавляет чат в базу данных."""
-        try:
-            data = json.loads(body)
-            name = data["name"]
-            description = data["description"]
-            chat_type = data["chat_type"]
+        return {"status": False, "message": "Not Implemented"}
 
-            if not name or not chat_type:
-                return {"status": "error", "message": "Name and chat type are required."}
+        # FIXME: this wont work...?
+        # return self.publish("404 Not Found", status_code=404)
 
-            if name in [i["name"] for i in chat_list]:
-                return {"status": "error", "message": f"Name {name} is busy."}
+        # """Добавляет чат в базу данных."""
+        # try:
+        #     data = json.loads(body)
+        #     name = data["name"]
+        #     description = data["description"]
+        #     chat_type = data["chat_type"]
 
-            chat: Json = {"name": name, "description": description, "chat_type": chat_type}
-            chat_list.append(chat)
-            return {"status": "ok", "chat": chat}
-        except json.JSONDecodeError:
-            return {"status": "error", "message": "Invalid JSON"}
+        #     if not name or not chat_type:
+        #         return {"status": False, "message": "Name and chat type are required."}
+
+        #     if name in [i["name"] for i in chat_list]:
+        #         return {"status": False, "message": f"Name {name} is busy."}
+
+        #     chat: Json = {"name": name, "description": description, "chat_type": chat_type}
+        #     chat_list.append(chat)
+        #     return {"status": True, "chat": chat}
+        # except json.JSONDecodeError:
+        #     return {"status": False, "message": "Invalid JSON"}
 
     async def register_user(self, body: str) -> Json:
         try:
             data: Json = json.loads(body)
-            name: Json = data["name"]
-            password: Json = data["password"]
+            name: str = data["name"]
+            password: str = data["password"]
 
             with Database() as db:
                 if not db.check_name(name):
                     return {
-                        "status": "error",
-                        "code": "409",
+                        "status": False,
+                        # "code": "409",
                         "message": "This name is already taken.",
                     }
 
             success = User().sign_up(name, password)
 
-            return {"status": "ok", "message": success}
+            return {"status": True, "message": success}
         except json.JSONDecodeError:
-            return {"status": "error", "message": "Invalid JSON"}
+            return {"status": False, "message": "Invalid JSON"}
 
     async def login_user(self, body: str) -> Json:
-        pass
+        return {"status": False, "message": "Not Implemented"}
 
     # endregion

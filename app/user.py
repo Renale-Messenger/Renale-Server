@@ -18,7 +18,8 @@ class User:
 
     # region GET funcs
     def get_user(self, id: int) -> Json:
-        pass
+        # unused
+        return {}
 
     # endregion
     # region POST funcs
@@ -30,15 +31,16 @@ class User:
             "system": "Linux",
             "architecture": "x86_64",
             "release": "18.04.5 LTS",
-        }
+        }  # TODO: why is this static...?
 
         with Database() as db:
             db.add_user(self.id, name, password, self.token, {str(int(timestamp())): session})
         return True
 
     def sign_in(self, name: str, token_or_pass: str) -> bool:
-        with Database() as db:
-            db.update_sessions()
+        # TODO: ???
+        # with Database() as db:
+        #     db.update_sessions()
         if token_or_pass == self.token:
             return True
         elif token_or_pass == self.password:
@@ -54,8 +56,9 @@ class User:
     def update_password(self, old_pass: str, new_pass: str) -> bool:
         if self.password == old_pass:
             self.password = new_pass
-            with Database() as db:
-                db.update_password(self.id, new_pass)
+            # TODO: update_password doesnt exist
+            # with Database() as db:
+            #     db.update_password(self.id, new_pass)
             return True
         return False
 

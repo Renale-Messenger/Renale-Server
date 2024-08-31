@@ -1,6 +1,6 @@
-from pymysql import connect as conn, cursors, OperationalError
+from pymysql import Connection, connect as conn, cursors, OperationalError
 from time import time as timestamp
-from typing import List
+from typing import List, Self
 from json import dumps, loads
 
 from app.config import host, port, user, password, db
@@ -33,11 +33,9 @@ __all__ = ["Database"]
 
 
 class Database:
-    connection = None
-
-    def __init__(self):
+    def __init__(self) -> None:
         try:
-            self.connection = conn(
+            self.connection: Connection = conn(
                 host=host,
                 port=port,
                 user=user,
@@ -46,17 +44,16 @@ class Database:
                 cursorclass=cursors.DictCursor,
             )
         except OperationalError as e:
-            raise (Exception("Error connecting to database: {e}"))
+            raise (Exception(f"Error connecting to database: {e}"))
 
-        if self.connection is None:
-            raise ValueError("Database connection is not established.")
-        else:
-            print("Database connection established successfully.")
+        print("Database connection established successfully.")
 
-    def __enter__(self) -> "Database":
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *exc_info) -> None:
+        # TODO: shouldnt it close the connection here...?
+        # (rn this does absolutely nothing btw)
         if self.connection:
             pass
 
