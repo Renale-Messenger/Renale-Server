@@ -18,3 +18,4 @@ venv.bak/
 .vscode/
 config.json
 config.ini
+config.py
