@@ -172,7 +172,7 @@ class Database:
 if __name__ == "__main__":
     try:
         base = Database()
-    except OperationalError as e:
+    except OperationalError:
         print("Error connecting to database.")
         print("Reconnect...")
         base = Database()
