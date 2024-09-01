@@ -1,9 +1,11 @@
 from time import time as timestamp
 from random import randint
 from typing import List
+import secrets
+import string
 
-from app.types import Json
-from app.database import Database
+from app.applib import Json, random_id
+from app.database import app_database
 
 
 __all__ = ["User"]
@@ -17,15 +19,15 @@ class User:
     sessions: List
 
     # region GET funcs
-    def get_user(self, id: int) -> Json:
-        # unused
-        return {}
+    def to_json(self) -> Json:
+        return {"id": self._id,
+                "name": self.name}
 
     # endregion
     # region POST funcs
     def sign_up(self, name: str, password: str) -> bool:
-        self.token = self.generate_token
-        self.id = self.generate_id
+        self.token = self.random_token()
+        self.id = self.free_id()
         session = {
             "version": "1.0",
             "system": "Linux",
@@ -33,20 +35,12 @@ class User:
             "release": "18.04.5 LTS",
         }  # TODO: why is this static...?
 
-        with Database() as db:
-            db.add_user(self.id, name, password, self.token, {str(int(timestamp())): session})
+        app_database.create_user(self.id, name, password, self.token, {str(int(timestamp())): session})
         return True
 
-    def sign_in(self, name: str, token_or_pass: str) -> bool:
-        # TODO: ???
-        # with Database() as db:
-        #     db.update_sessions()
-        if token_or_pass == self.token:
-            return True
-        elif token_or_pass == self.password:
-            self.token = self.generate_token
-            return True
-        return False
+    def sign_in(self, name: str, password: str) -> bool:
+        self.id, self.token = app_database.login_user(name, password)
+        return self.id >= 0
 
     def sign_out(self) -> None:
         pass
@@ -62,14 +56,12 @@ class User:
             return True
         return False
 
-    @property
-    def generate_token(self):
-        return f"{randint(100_000_000, 999_999_999)}:{''.join([chr(randint(97, 122)) if randint(0, 1) else chr(randint(65, 90)) for _ in range(20)])}"
+    def random_token(self):
+        return "".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(128))
 
-    @property
-    def generate_id(self) -> int:
-        with Database() as db:
-            while True:
-                id = randint(100_000_000, 999_999_999)
-                if db.check_id(id):
-                    return id
+    def free_id(self) -> int:
+        id = random_id()
+        if app_database.check_id(id):
+            return self.random_id()
+        return id
+    # endregion
