@@ -4,10 +4,10 @@ from typing import Any, Dict, List, Optional, Literal, Tuple
 from json import dumps, loads
 
 from app.applib import Json, random_id
-from app.config import config
 
 
 __all__: List[str] = ["app_database", "Database", "Session"]
+
 
 class Session:
     def __init__(self, version, system, architecture, release):
@@ -54,7 +54,7 @@ class Database:
             sql = self.connection.cursor()
             sql.execute("SELECT id, name, sessions FROM users ORDER BY id DESC LIMIT %s", (limit,))
             rows = sql.fetchall()
-        except:
+        except Exception:
             return
         finally:
             sql.close()
@@ -63,14 +63,14 @@ class Database:
                  "name": row["name"],
                  "sessions": loads(row["sessions"])}
                 for row in rows
-        ]
+                ]
 
     def get_user_by_id(self, id: int) -> Json:
         try:
             sql = self.connection.cursor()
             sql.execute("SELECT id, name, sessions FROM users WHERE id = %s", (id,))
             row = sql.fetchone()
-        except:
+        except Exception:
             return
         finally:
             sql.close()
@@ -84,7 +84,7 @@ class Database:
             sql = self.connection.cursor()
             sql.execute("SELECT id, name, sessions FROM users WHERE name = %s", (name,))
             row = sql.fetchone()
-        except:
+        except Exception:
             return
         finally:
             sql.close()
@@ -92,8 +92,6 @@ class Database:
         return {"id": row["id"],
                 "name": row["name"],
                 "sessions": loads(row["sessions"])}
-
-
 
     def get_id_by_name(self, name: str) -> int:
         try:
@@ -142,7 +140,7 @@ class Database:
                 (id, name, password, token, dumps([session]), "[]"),
             )
             self.connection.commit()
-        except:
+        except Exception:
             return (-1, "Error creating user")
         finally:
             sql.close()
@@ -154,11 +152,10 @@ class Database:
             sql = self.connection.cursor()
             sql.execute("SELECT id, name, password, token, sessions FROM users WHERE name = %s", (name,))
             user = sql.fetchone()
-        except:
+        except Exception:
             return
         finally:
             sql.close()
-
 
         if user and user["password"] == password:
             return (user["id"], user["token"])
@@ -193,11 +190,10 @@ class Database:
             sql = self.connection.cursor()
             sql.execute("SELECT * FROM messages ORDER BY time DESC LIMIT %s", (limit,))
             rows = sql.fetchall()
-        except:
+        except Exception:
             return
         finally:
             sql.close()
-
 
         return {
             "messages": [
@@ -220,6 +216,7 @@ class Database:
             return int(sql.fetchone()[0])
         finally:
             sql.close()
+
     # endregion
     # region POST MESSAGE
     def send_message(self, chat: Json, user: Json, text: str) -> None:
@@ -243,7 +240,7 @@ class Database:
             else:
                 sql.execute("SELECT is_group, chat_id, title, members FROM chats ORDER BY chat_id DESC")
             rows = sql.fetchall()
-        except:
+        except Exception:
             return
         finally:
             sql.close()
@@ -278,11 +275,10 @@ class Database:
             sql = self.connection.cursor()
             sql.execute("SELECT is_group, chat_id, title, description, members, admins FROM chats WHERE chat_id = %s", (chat_id,))
             row = sql.fetchone()
-        except:
+        except Exception:
             return
         finally:
             sql.close()
-
 
         return {
             "id": row["chat_id"],
@@ -325,7 +321,7 @@ class Database:
         try:
             sql = self.connection.cursor()
             sql.execute("INSERT INTO chats (is_group, chat_id, title, description, members, admins) VALUES (%s, %s, %s, %s, %s, %s)",
-            (is_group, chat_id, title, description, dumps(members), dumps(admins)))
+                        (is_group, chat_id, title, description, dumps(members), dumps(admins)))
             self.connection.commit()
         finally:
             sql.close()
@@ -345,6 +341,7 @@ class Database:
         finally:
             sql.close()
     # endregion
+
 
 try:
     app_database: Database = Database()
