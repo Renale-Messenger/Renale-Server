@@ -1,6 +1,6 @@
-from pymysql import Connection, connect as conn, cursors, OperationalError
+import sqlite3
 from time import time as timestamp
-from typing import Any, Dict, List, Optional, Literal, Tuple, Union
+from typing import Any, Dict, List, Optional, Literal, Tuple
 from json import dumps, loads
 
 from app.applib import Json, random_id
@@ -33,17 +33,12 @@ Session info:
 
 class Database:
     def __init__(self) -> None:
+        self.sqlite_db_path: str = './server.sqlite'
         try:
-            self.connection: Connection = conn(
-                host=config.mysql_host,
-                port=config.mysql_port,
-                user=config.mysql_user.get_secret_value(),
-                password=config.mysql_password.get_secret_value(),
-                db=config.mysql_db,
-                cursorclass=cursors.DictCursor,
-            )
-        except OperationalError as e:
-            raise (Exception(f"Error connecting to database: {e}"))
+            self.connection = sqlite3.connect(self.sqlite_db_path)
+            self.connection.row_factory = sqlite3.Row
+        except sqlite3.OperationalError as e:
+            raise Exception(f"Error connecting to database: {e}")
 
         print("Database connection established successfully.")
 
@@ -55,9 +50,14 @@ class Database:
     # region GET USER
     def get_users(self, limit: int = 50) -> Json:
         limit = int(limit)
-        with self.connection.cursor() as sql:
+        try:
+            sql = self.connection.cursor()
             sql.execute("SELECT id, name, sessions FROM users ORDER BY id DESC LIMIT %s", (limit,))
             rows = sql.fetchall()
+        except:
+            return
+        finally:
+            sql.close()
 
         return [{"id": row["id"],
                  "name": row["name"],
@@ -66,66 +66,99 @@ class Database:
         ]
 
     def get_user_by_id(self, id: int) -> Json:
-        with self.connection.cursor() as sql:
+        try:
+            sql = self.connection.cursor()
             sql.execute("SELECT id, name, sessions FROM users WHERE id = %s", (id,))
             row = sql.fetchone()
+        except:
+            return
+        finally:
+            sql.close()
 
         return {"id": row["id"],
                 "name": row["name"],
                 "sessions": row["sessions"]}
 
     def get_user_by_name(self, name: str) -> Json:
-        with self.connection.cursor() as sql:
+        try:
+            sql = self.connection.cursor()
             sql.execute("SELECT id, name, sessions FROM users WHERE name = %s", (name,))
             row = sql.fetchone()
+        except:
+            return
+        finally:
+            sql.close()
 
         return {"id": row["id"],
                 "name": row["name"],
                 "sessions": loads(row["sessions"])}
 
+
+
     def get_id_by_name(self, name: str) -> int:
-        with self.connection.cursor() as sql:
+        try:
+            sql = self.connection.cursor()
             sql.execute("SELECT id FROM users WHERE name = %s", (name,))
             row = sql.fetchone()
-        return row["id"]
+            return row["id"]
+        finally:
+            sql.close()
 
     def check_id(self, id: int) -> bool:
         """Returns True if user with given id does exist in the database."""
-        with self.connection.cursor() as sql:
+        try:
+            sql = self.connection.cursor()
             sql.execute("SELECT * FROM users WHERE id = %s", (id,))
             return sql.fetchone() is not None
+        finally:
+            sql.close()
 
     def check_name(self, name: str) -> bool:
         """Returns True if user with given name does exist in the database."""
-        with self.connection.cursor() as sql:
+        try:
+            sql = self.connection.cursor()
             sql.execute("SELECT * FROM users WHERE name = %s", (name,))
             return sql.fetchone() is not None
+        finally:
+            sql.close()
 
     @property
     def count_users(self) -> int:
-        with self.connection.cursor() as sql:
+        try:
+            sql = self.connection.cursor()
             sql.execute("SELECT COUNT(*) FROM users")
-            return int(sql.fetchone()["COUNT(*)"])
+            return int(sql.fetchone()[0])
+        finally:
+            sql.close()
 
     # endregion
     # region POST USER
     def create_user(self, id: int, name: str, password: str, token: str, session: Json) -> Tuple[int, str]:
         """Register user in database and return user's id and token."""
-
-        with self.connection.cursor() as sql:
+        try:
+            sql = self.connection.cursor()
             sql.execute(
                 "INSERT INTO users (id, name, password, token, sessions, chats) VALUES (%s, %s, %s, %s, %s, %s)",
                 (id, name, password, token, dumps([session]), "[]"),
             )
             self.connection.commit()
+        except:
+            return (-1, "Error creating user")
+        finally:
+            sql.close()
         return (id, token)
 
     def login_user(self, name: str, password: str) -> Tuple[int, str]:
         """Authenticate user by name and password and return user's id and token. If credentials are invalid, return id -1(invalid) and an error message."""
-
-        with self.connection.cursor() as sql:
+        try:
+            sql = self.connection.cursor()
             sql.execute("SELECT id, name, password, token, sessions FROM users WHERE name = %s", (name,))
             user = sql.fetchone()
+        except:
+            return
+        finally:
+            sql.close()
+
 
         if user and user["password"] == password:
             return (user["id"], user["token"])
@@ -133,26 +166,38 @@ class Database:
             return (-1, "Invalid credentials")
 
     def update_sessions(self, id: int, new_session: Json) -> None:
-        with self.connection.cursor() as sql:
+        try:
+            sql = self.connection.cursor()
             sessions: List[Json] = sql.execute(
                 "SELECT id, name, sessions FROM users WHERE id = %s", (id,)
             )
             sessions.append(new_session)
             sql.execute("UPDATE users SET sessions = %s WHERE id = %s", (sessions, id))
             self.connection.commit()
+        finally:
+            sql.close()
 
     def change_password(self, id: int, new_password: str) -> None:
-        with self.connection.cursor() as sql:
+        try:
+            sql = self.connection.cursor()
             sql.execute("UPDATE users SET password = %s WHERE id = %s", (new_password, id))
             self.connection.commit()
+        finally:
+            sql.close()
 
     # endregion
     # region GET MESSAGE
     def get_messages(self, limit: int = 50) -> Dict[Literal["messages"], List[Dict[str, Any]]]:
         limit = int(limit)
-        with self.connection.cursor() as sql:
+        try:
+            sql = self.connection.cursor()
             sql.execute("SELECT * FROM messages ORDER BY time DESC LIMIT %s", (limit,))
             rows = sql.fetchall()
+        except:
+            return
+        finally:
+            sql.close()
+
 
         return {
             "messages": [
@@ -169,29 +214,39 @@ class Database:
 
     @property
     def count_messages(self) -> int:
-        with self.connection.cursor() as sql:
+        try:
+            sql = self.connection.cursor()
             sql.execute("SELECT COUNT(*) FROM messages")
-            return int(sql.fetchone()["COUNT(*)"])
-
+            return int(sql.fetchone()[0])
+        finally:
+            sql.close()
     # endregion
     # region POST MESSAGE
     def send_message(self, chat: Json, user: Json, text: str) -> None:
-        with self.connection.cursor() as sql:
+        try:
+            sql = self.connection.cursor()
             sql.execute(
                 "INSERT INTO messages (chat, user, text, time) VALUES (%s, %s, %s, %s)",
                 (chat, user, text, timestamp()),
             )
             self.connection.commit()
+        finally:
+            sql.close()
 
     # endregion
     # region GET CHATS
     def get_chats(self, limit: Optional[int] = 50) -> Json:
-        with self.connection.cursor() as sql:
+        try:
+            sql = self.connection.cursor()
             if isinstance(limit, int):
                 sql.execute("SELECT is_group, chat_id, title, members FROM chats ORDER BY chat_id DESC LIMIT %s", (limit,))
             else:
                 sql.execute("SELECT is_group, chat_id, title, members FROM chats ORDER BY chat_id DESC")
             rows = sql.fetchall()
+        except:
+            return
+        finally:
+            sql.close()
 
         return {"chats": [{"is_group": not not row["is_group"],
                            "id": row["chat_id"],
@@ -202,20 +257,32 @@ class Database:
 
     def check_chat_title(self, title: str) -> bool:
         """Returns True if chat with given title already exists in the database."""
-        with self.connection.cursor() as sql:
+        try:
+            sql = self.connection.cursor()
             sql.execute("SELECT * FROM chats WHERE title = %s", (title,))
             return sql.fetchone() is not None
+        finally:
+            sql.close()
 
     def check_chat(self, chat_id: str) -> bool:
         """Returns True if chat with given id already exists in the database."""
-        with self.connection.cursor() as sql:
+        try:
+            sql = self.connection.cursor()
             sql.execute("SELECT * FROM chats WHERE chat_id = %s", (chat_id,))
             return sql.fetchone() is not None
+        finally:
+            sql.close()
 
     def get_chat_by_id(self, chat_id) -> Dict[str, Any]:
-        with self.connection.cursor() as sql:
+        try:
+            sql = self.connection.cursor()
             sql.execute("SELECT is_group, chat_id, title, description, members, admins FROM chats WHERE chat_id = %s", (chat_id,))
             row = sql.fetchone()
+        except:
+            return
+        finally:
+            sql.close()
+
 
         return {
             "id": row["chat_id"],
@@ -228,9 +295,12 @@ class Database:
 
     @property
     def count_chats(self) -> int:
-        with self.connection.cursor() as sql:
+        try:
+            sql = self.connection.cursor()
             sql.execute("SELECT COUNT(*) FROM chats")
-            return int(sql.fetchone()["COUNT(*)"])
+            return int(sql.fetchone()[0])
+        finally:
+            sql.close()
 
     # endregion
     # region POST CHATS
@@ -252,29 +322,33 @@ class Database:
         else:
             title = ""
             description = ""
-
-        with self.connection.cursor() as sql:
+        try:
+            sql = self.connection.cursor()
             sql.execute("INSERT INTO chats (is_group, chat_id, title, description, members, admins) VALUES (%s, %s, %s, %s, %s, %s)",
             (is_group, chat_id, title, description, dumps(members), dumps(admins)))
             self.connection.commit()
+        finally:
+            sql.close()
 
     def add_members(self, member_ids: List[int], chat_id: int) -> None:
         members: List = []
 
         for member in member_ids:
             members.append(self.get_user_by_id(member))
-
-
-        with self.connection.cursor() as sql:
-            sql.execute("UPDATE chats SET members = array_append(members, %s) WHERE chat_id = %s", (user_id, chat_id))
+        try:
+            sql = self.connection.cursor()
+            sql.execute("SELECT members FROM chats WHERE chat_id = ?", (chat_id,))
+            current_members = loads(sql.fetchone()["members"])
+            updated_members = current_members + members
+            sql.execute("UPDATE chats SET members = ? WHERE chat_id = ?", (dumps(updated_members), chat_id))
             self.connection.commit()
-
+        finally:
+            sql.close()
     # endregion
-
 
 try:
     app_database: Database = Database()
-except OperationalError:
+except sqlite3.OperationalError:
     print("Error connecting to database.")
     print("Reconnect...")
     app_database: Database = Database()
