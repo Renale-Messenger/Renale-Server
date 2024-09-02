@@ -11,17 +11,18 @@ from app.user import User
 
 
 class RenaleServer:
-    def __init__(self, host: str = "127.0.0.1", port: int = 9789):
-        self.host = host
-        self.port = port
-        self.serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.serverSocket.bind((self.host, self.port))
-        self.serverSocket.listen(2)
-        self.serverSocket.setblocking(False)
-        print(f"Server listening on {self.host}:{self.port}")
-        session = Session(version(), system(), architecture(), release())
-        print(session)
+    def __init__(self, host: str = "127.0.0.1", port: int = 9789, local: bool = false):
+        if local:
+            self.host = host
+            self.port = port
+            self.serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.serverSocket.bind((self.host, self.port))
+            self.serverSocket.listen(2)
+            self.serverSocket.setblocking(False)
+            print(f"Server listening on {self.host}:{self.port}")
+            session = Session(version(), system(), architecture(), release())
+            print(session)
 
     # region server funcs
     async def handle_http_request(self, conn: socket.socket, addr: Tuple[str, int]) -> None:
