@@ -97,10 +97,10 @@ class RenaleServer:
         self, content: str, status_code: int = 200, content_type: str = "text/html"
     ) -> str:
         response = (
-            f"HTTP/1.1 {status_code} OK\r\n"
-            + f"Content-Type: {content_type}\r\n"
-            + f"Content-Length: {len(content)}\r\n"
-            + f"Connection: close\r\n\r\n{content}"
+            f"HTTP/1.1 {status_code} OK\n"
+            + f"Content-Type: {content_type}\n"
+            + f"Content-Length: {len(content)}\n"
+            + f"Connection: close\n\n{content}"
         )
         return response
 
