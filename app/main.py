@@ -6,12 +6,12 @@ import socket
 import json
 
 from app.database import Session, app_database
-from app.applib import Json
+from app.applib import Json, JsonD
 from app.user import User
 
 
 class RenaleServer:
-    def __init__(self, host: str = "127.0.0.1", port: int = 9789, local: bool = false):
+    def __init__(self, host: str = "127.0.0.1", port: int = 9789, local: bool = False):
         if local:
             self.host = host
             self.port = port
@@ -99,9 +99,9 @@ class RenaleServer:
     ) -> str:
         response = (
             f"HTTP/1.1 {status_code} OK\n"
-            + f"Content-Type: {content_type}\n"
-            + f"Content-Length: {len(content)}\n"
-            + f"Connection: close\n\n{content}"
+            f"Content-Type: {content_type}\n"
+            f"Content-Length: {len(content)}\n"
+            f"Connection: close\n\n{content}"
         )
         return response
 
@@ -143,9 +143,9 @@ class RenaleServer:
         """
 
         try:
-            query = route.split("?")[1] if "?" in route else ""
-            params = dict(qc.split("=") for qc in query.split("&") if "=" in qc)
-            limit = int(params.get("limit", 50))
+            query: str = route.split("?")[1] if "?" in route else ""
+            params: JsonD = dict(qc.split("=") for qc in query.split("&") if "=" in qc)
+            limit: int = int(params.get("limit", 50))
         except (ValueError, IndexError):
             return {"error": "Invalid or missing limit parameter"}
 
@@ -187,7 +187,7 @@ class RenaleServer:
         }
         """
         try:
-            data: Json = json.loads(body)
+            data: JsonD = json.loads(body)
             name: str = data["name"]
             password: str = data["password"]
 
@@ -209,7 +209,7 @@ class RenaleServer:
         """
 
         try:
-            data: Json = json.loads(body)
+            data: JsonD = json.loads(body)
             name: str = data["name"]
             password: str = data["password"]
 
@@ -219,7 +219,7 @@ class RenaleServer:
             if user:
                 return {"status": status, "message": "Logged in successfully.", "user": user.to_json() & {"token": user.token}}
 
-        except Exception as e:
+        except Exception:
             return {"status": False, "message": "Not Implemented"}
 
     async def create_chat(self, body: str) -> Json:
@@ -271,7 +271,7 @@ class RenaleServer:
         }
         """
         try:
-            data: Json = json.loads(body)
+            data: JsonD = json.loads(body)
             chat_id: int = data["chat_id"]
             user_id: int = data["id"]
             text: str = data["text"]

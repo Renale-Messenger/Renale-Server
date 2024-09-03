@@ -1,9 +1,8 @@
 import sqlite3
-from time import time as timestamp
-from typing import Any, Dict, List, Optional, Literal, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from json import dumps, loads
 
-from app.applib import Json, random_id
+from app.applib import Json, JsonD, random_id
 
 
 __all__: List[str] = ["app_database", "Database", "Session"]
@@ -65,7 +64,7 @@ class Database:
                 for row in rows
                 ]
 
-    def get_user_by_id(self, id: int) -> Json:
+    def get_user_by_id(self, id: int) -> JsonD:
         try:
             sql = self.connection.cursor()
             sql.execute("SELECT id, name, sessions FROM users WHERE id = %s", (id,))
@@ -79,7 +78,7 @@ class Database:
                 "name": row["name"],
                 "sessions": row["sessions"]}
 
-    def get_user_by_name(self, name: str) -> Json:
+    def get_user_by_name(self, name: str) -> JsonD:
         try:
             sql = self.connection.cursor()
             sql.execute("SELECT id, name, sessions FROM users WHERE name = %s", (name,))
@@ -261,7 +260,7 @@ class Database:
         finally:
             sql.close()
 
-    def check_chat(self, chat_id: str) -> bool:
+    def check_chat(self, chat_id: int) -> bool:
         """Returns True if chat with given id already exists in the database."""
         try:
             sql = self.connection.cursor()
@@ -270,7 +269,7 @@ class Database:
         finally:
             sql.close()
 
-    def get_chat_by_id(self, chat_id) -> Dict[str, Any]:
+    def get_chat_by_id(self, chat_id: int) -> Dict[str, Any]:
         try:
             sql = self.connection.cursor()
             sql.execute("SELECT is_group, chat_id, title, description, members, admins FROM chats WHERE chat_id = %s", (chat_id,))
@@ -302,9 +301,9 @@ class Database:
     # region POST CHATS
     def create_chat(self, creator_id: int, is_group: bool, title: str, description: str, member_ids: List[int]) -> None:
         creator = self.get_user_by_id(creator_id)
-        admins: List = []
-        members: List = []
-        chat_id: int = 0
+        admins: List[JsonD] = []
+        members: List[JsonD] = []
+        chat_id: int = -1
 
         if is_group:
             for i in member_ids:
@@ -312,8 +311,8 @@ class Database:
 
             admins.append(creator)
             while True:
-                chat_id = f"-{random_id()}"
-                if not self.check_chat(chat_id):
+                chat_id = -random_id()
+                if not self.check_chat(chat_id) and chat_id != -1:
                     break
         else:
             title = ""

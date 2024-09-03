@@ -1,10 +1,9 @@
 from time import time as timestamp
-from random import randint
 from typing import List
 import secrets
 import string
 
-from app.applib import Json, random_id
+from app.applib import Json, JsonD, random_id
 from app.database import app_database
 
 
@@ -16,10 +15,10 @@ class User:
     token: str
     password: str
     _id: int
-    sessions: List
+    sessions: List[Json]
 
     # region GET funcs
-    def to_json(self) -> Json:
+    def to_json(self) -> JsonD:
         return {"id": self._id,
                 "name": self.name}
 
@@ -62,6 +61,6 @@ class User:
     def free_id(self) -> int:
         id = random_id()
         if app_database.check_id(id):
-            return self.random_id()
+            return self.free_id()
         return id
     # endregion
