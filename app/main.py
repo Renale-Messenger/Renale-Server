@@ -6,7 +6,7 @@ import socket
 import json
 
 from app.database import Session, app_database
-from app.applib import Json, JsonD
+from app.applib import Json, JsonD, JsonResp
 from app.user import User
 
 
@@ -29,7 +29,7 @@ class RenaleServer:
         request = await asyncio.get_event_loop().sock_recv(conn, 1024)
         request_text = request.decode("utf-8")
 
-        route, method, headers, body = self.parse_http_request(request_text)
+        route, method, headers, body = self.parse_http_request(request_text)  # type: ignore
         route_name = route.split("?", maxsplit=1)[0]
         print(f'Connection from {"localhost" if addr[0] == "127.0.0.1" else addr[0]}:{addr[1]}. Method: {method}, Route: {route_name}')
         response = await self.route_request(route, method, body)
@@ -57,7 +57,7 @@ class RenaleServer:
         return (path, method, headers, body)
 
     async def route_request(self, route: str, method: str, body: str) -> str:
-        response_data: str | Json = ""
+        response_data: JsonResp = {}
         route_data = route.split("?", maxsplit=1)
         route_name = route_data[0]
         # TODO: unused...?
@@ -75,6 +75,8 @@ class RenaleServer:
                         response_data = await self.get_chats(route)
                     case "/users":
                         response_data = await self.get_users(route)
+                    case _:
+                        return self.publish("404 Not Found", status_code=404)
                 return self.publish(
                     json.dumps(response_data), content_type="application/json"
                 )
@@ -94,15 +96,17 @@ class RenaleServer:
                         return self.publish("404 Not Found", status_code=404)
                 return self.publish(
                     json.dumps(response_data), content_type="application/json",
-                    status_code=200 if response_data["status"] else 400
+                    status_code=200 if response_data["status"] else 400  # type: ignore
                 )
             case "DELETE":
                 match route_name:
                     case "/deleteUser":
                         response_data = await self.delete_user(body)
+                    case _:
+                        return self.E404
                 return self.publish(
                     json.dumps(response_data), content_type="application/json",
-                    status_code=200 if response_data["status"] else 400
+                    status_code=200 if response_data["status"] else 400  # type: ignore
                 )
             case _:
                 return self.publish("405 Method Not Allowed", status_code=405)
@@ -115,6 +119,10 @@ class RenaleServer:
             f"Connection: close\n\n{content}"
         )
         return response
+
+    @property
+    def E404(self) -> str:
+        return self.publish("404 Not Found", status_code=404)
 
     async def start(self) -> None:
         loop = asyncio.get_event_loop()
@@ -134,7 +142,7 @@ class RenaleServer:
         with open(Path(__file__).parent.parent/"static/index.html", "r") as f:
             return f.read()
 
-    def status(self) -> Json:
+    def status(self) -> JsonResp:
         """
         `status()`
 
@@ -142,11 +150,11 @@ class RenaleServer:
         """
 
         return {"status": True,
-                "message_count": app_database.count_messages,
-                "user_count": app_database.count_users,
-                "chat_count": app_database.count_chats}
+                "data": {"message_count": app_database.count_messages,
+                         "user_count": app_database.count_users,
+                         "chat_count": app_database.count_chats}}
 
-    async def get_messages(self, route: str) -> Json:
+    async def get_messages(self, route: str) -> JsonResp:
         """
         `get_messages()`
 
@@ -157,12 +165,12 @@ class RenaleServer:
             query: str = route.split("?")[1] if "?" in route else ""
             params: JsonD = dict(qc.split("=") for qc in query.split("&") if "=" in qc)
             limit: int = int(params.get("limit", 50))
+
+            return {"status": True, "data": {"messages": app_database.get_messages(limit)}}
         except (ValueError, IndexError):
-            return {"error": "Invalid or missing limit parameter"}
+            return {"status": False, "data": {"error": "Invalid or missing limit parameter"}}
 
-        return app_database.get_messages(limit)
-
-    async def get_chats(self, route: str) -> Json:
+    async def get_chats(self, route: str) -> JsonResp:
         """
         `get_chats()`
 
@@ -173,24 +181,24 @@ class RenaleServer:
             query = route.split("?")[1] if "?" in route else ""
             params = dict(qc.split("=") for qc in query.split("&") if "=" in qc)
             limit = int(params.get("limit", 50))
+
+            return {"status": True, "data": {"chats": app_database.get_chats(limit)}}
         except (ValueError, IndexError):
-            return {"error": "Invalid or missing limit parameter"}
+            return {"status": False, "data": {"error": "Invalid or missing limit parameter"}}
 
-        return app_database.get_chats(limit)
-
-    async def get_users(self, route: str) -> Json:
+    async def get_users(self, route: str) -> JsonResp:
         try:
             query = route.split("?")[1] if "?" in route else ""
             params = dict(qc.split("=") for qc in query.split("&") if "=" in qc)
             limit = int(params.get("limit", 50))
-        except (ValueError, IndexError):
-            return {"error": "Invalid or missing limit parameter"}
 
-        return {"messages": app_database.get_users(limit)}
+            return {"status": True, "data": {"users": app_database.get_users(limit)}}
+        except (ValueError, IndexError):
+            return {"status": False, "data": {"error": "Invalid or missing limit parameter"}}
 
     # endregion
     # region POST funcs
-    async def register_user(self, body: str) -> Json:
+    async def register_user(self, body: str) -> JsonResp:
         """Register new user and save to database.
         {
             "name": "John Doe",
@@ -203,15 +211,15 @@ class RenaleServer:
             password: str = data["password"]
 
             if app_database.check_name(name):
-                return {"status": False, "message": "This name is already taken."}
+                return {"status": False, "data": {"message": "This name is already taken."}}
 
             success = User().sign_up(name, password)
 
-            return {"status": True, "message": success}
+            return {"status": True, "data": {"message": success}}
         except json.JSONDecodeError:
-            return {"status": False, "message": "Invalid JSON"}
+            return {"status": False, "data": {"message": "Invalid JSON"}}
 
-    async def login_user(self, body: str) -> Json:
+    async def login_user(self, body: str) -> JsonResp:
         """Log user in.
         {
             "name": "John Doe",
@@ -228,22 +236,23 @@ class RenaleServer:
             status: bool = user.sign_in(name, password)
 
             if user:
-                return {"status": status, "message": "Logged in successfully.", "user": user.to_json() & {"token": user.token}}
+                return {"status": status, "data": {"message": "Logged in successfully.", "user": user.to_json() & {"token": user.token}}}  # type: ignore
 
         except Exception:
-            return {"status": False, "message": "Not Implemented"}
+            return {"status": False, "data": {"message": "Not Implemented"}}
 
-    async def create_chat(self, body: str) -> Json:
+    async def create_chat(self, body: str) -> JsonResp:
         """Create chat in db.
         {
             "title": "Test Chat",
             "description": "This is a test chat.",
             "is_group": true,
             "creator_id": 1,
-            "creator_tooken": "token123",
+            "creator_token": "token123",
             "members": [1, 2, 3]
         }
         """
+
         try:
             data: Dict[str, Any] = json.loads(body)
 
@@ -255,27 +264,24 @@ class RenaleServer:
                 ("creator_token" not in data),
                 ("members" not in data),
             )):
-                return {"status": False, "message": "All fields are required."}
+                return {"status": False, "data": {"message": "All fields are required."}}
 
             title: str = data["title"]
 
             if not title:
-                return {"status": False, "message": "Name is required."}
+                return {"status": False, "data": {"message": "Name is required."}}
 
             if app_database.check_chat_title(title):
-                return {"status": False, "message": f"Name {title} is busy."}
+                return {"status": False, "data": {"message": f"Name {title} is busy."}}
 
             app_database.create_chat(
                 data["creator"], data["creator_token"], data["is_group"], title, data["description"], data["members"]
             )
-            return {
-                "status": True,
-                "chat": title,
-            }
+            return {"status": True, "data": {"message": title}}
         except json.JSONDecodeError:
-            return {"status": False, "message": "Invalid JSON"}
+            return {"status": False, "data": {"message": "Invalid JSON"}}
 
-    async def send_message(self, body: str) -> Json:
+    async def send_message(self, body: str) -> JsonResp:
         """Store message in database.
         {
             "chat_id": -1,
@@ -283,6 +289,7 @@ class RenaleServer:
             "token": "token123",
             "text": "Hello, World!"
         """
+
         try:
             data: JsonD = json.loads(body)
             chat_id: int = data["chat_id"]
@@ -291,19 +298,18 @@ class RenaleServer:
             text: str = data["text"]
 
             if app_database.check_chat(chat_id):
-                return {"status": False, "message": "Chat not found."}
+                return {"status": False, "data": {"message": "Chat not found."}}
 
             if user_id < 0 or not text:
-                return {"status": False, "message": "Valid ID and text are required."}
+                return {"status": False, "data": {"message": "Valid ID and text are required."}}
 
             app_database.send_message(user_id, user_token, chat_id, text)
 
-            return {"status": True,
-                    "message": "Sent successfully."}
+            return {"status": True, "data": {"message": "Sent successfully."}}
         except json.JSONDecodeError:
-            return {"status": False, "message": "Invalid JSON"}
+            return {"status": False, "data": {"message": "Invalid JSON"}}
 
-    async def change_password(self, body: str) -> Json:
+    async def change_password(self, body: str) -> JsonResp:
         """Update user password.
         {
             "id": 1,
@@ -311,6 +317,7 @@ class RenaleServer:
             "new_pass": "new_password"
         }
         """
+
         try:
             data: JsonD = json.loads(body)
             user_id: int = int(data["id"])
@@ -318,49 +325,52 @@ class RenaleServer:
             new_pass: str = str(data["new_pass"])
 
             if user_id < 0 or not old_pass:
-                return {"status": False, "message": "Valid ID and password are required."}
+                return {"status": False, "data": {"message": "Valid ID and password are required."}}
 
             user_json: JsonD = app_database.get_user_by_id(user_id)
 
             if not user_json:
-                return {"status": False, "message": "User not found."}
+                return {"status": False, "data": {"message": "User not found."}}
 
             user: User = User()
             user.sign_in(user_json["name"], old_pass)
 
             user.change_password(old_pass, new_pass)
 
-            return {"status": True, "message": "Password updated successfully."}
+            return {"status": True, "data": {"message": "Password updated successfully."}}
         except json.JSONDecodeError:
-            return {"status": False, "message": "Invalid JSON"}
+            return {"status": False, "data": {"message": "Invalid JSON"}}
 
-    async def delete_user(self, body: str) -> Json:
+    # endregion
+    # region DELETE funcs
+    async def delete_user(self, body: str) -> JsonResp:
         """Delete user from db.
         {
             "id": 1,
             "token": "user_token"
         }
         """
+
         try:
             data: JsonD = json.loads(body)
             user_id: int = int(data["id"])
             user_token: str = str(data["token"])
 
             if user_id < 0:
-                return {"status": False, "message": "Valid ID is required."}
+                return {"status": False, "data": {"message": "Valid ID is required."}}
 
             user_json: JsonD = app_database.get_user_by_id(user_id)
 
             if not user_json:
-                return {"status": False, "message": "User not found."}
+                return {"status": False, "data": {"message": "User not found."}}
 
             user: User = User()
             user.sign_in(user_json["name"], user_json["password"])
 
             app_database.delete_user(user_id, user_token)
 
-            return {"status": True, "message": "User deleted successfully."}
+            return {"status": True, "data": {"message": "User deleted successfully."}}
         except json.JSONDecodeError:
-            return {"status": False, "message": "Invalid JSON"}
+            return {"status": False, "data": {"message": "Invalid JSON"}}
 
     # endregion

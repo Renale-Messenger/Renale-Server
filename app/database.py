@@ -9,7 +9,7 @@ __all__: List[str] = ["app_database", "Database", "Session"]
 
 
 class Session:
-    def __init__(self, version, system, architecture, release):
+    def __init__(self, version, system, architecture, release):  # type: ignore
         self.version = version
         self.system = system
         self.architecture = architecture
@@ -47,14 +47,14 @@ class Database:
             print("Database connection closed.")
 
     # region GET USER
-    def get_users(self, limit: int = 50) -> Json:
+    def get_users(self, limit: int = 50) -> List[JsonD]:
         limit = int(limit)
         try:
             sql = self.connection.cursor()
             sql.execute("SELECT id, name, sessions FROM users ORDER BY id DESC LIMIT %s", (limit,))
             rows = sql.fetchall()
         except Exception:
-            return
+            return []
         finally:
             sql.close()
 
@@ -70,7 +70,7 @@ class Database:
             sql.execute("SELECT id, name, sessions FROM users WHERE id = %s", (id,))
             row = sql.fetchone()
         except Exception:
-            return
+            return {}
         finally:
             sql.close()
 
@@ -84,7 +84,7 @@ class Database:
             sql.execute("SELECT id, name, sessions FROM users WHERE name = %s", (name,))
             row = sql.fetchone()
         except Exception:
-            return
+            return {}
         finally:
             sql.close()
 
@@ -98,6 +98,8 @@ class Database:
             sql.execute("SELECT id FROM users WHERE name = %s", (name,))
             row = sql.fetchone()
             return row["id"]
+        except Exception:
+            return -1
         finally:
             sql.close()
 
@@ -107,6 +109,8 @@ class Database:
             sql = self.connection.cursor()
             sql.execute("SELECT * FROM users WHERE id = %s", (id,))
             return sql.fetchone() is not None
+        except Exception:
+            return True
         finally:
             sql.close()
 
@@ -116,6 +120,8 @@ class Database:
             sql = self.connection.cursor()
             sql.execute("SELECT * FROM users WHERE name = %s", (name,))
             return sql.fetchone() is not None
+        except Exception:
+            return True
         finally:
             sql.close()
 
@@ -125,6 +131,8 @@ class Database:
             sql = self.connection.cursor()
             sql.execute("SELECT COUNT(*) FROM users")
             return int(sql.fetchone()[0])
+        except Exception:
+            return -1
         finally:
             sql.close()
 
@@ -152,7 +160,7 @@ class Database:
             sql.execute("SELECT id, name, password, token, sessions FROM users WHERE name = %s", (name,))
             user = sql.fetchone()
         except Exception:
-            return
+            return (-1, "User not found")
         finally:
             sql.close()
 
@@ -174,6 +182,8 @@ class Database:
                 sessions.append(new_session)
                 sql.execute("UPDATE users SET sessions = %s WHERE id = %s", (sessions, id))
                 self.connection.commit()
+        except Exception:
+            return
         finally:
             sql.close()
 
@@ -182,6 +192,8 @@ class Database:
             sql = self.connection.cursor()
             sql.execute("UPDATE users SET password = %s WHERE id = %s", (new_password, id))
             self.connection.commit()
+        except Exception:
+            return
         finally:
             sql.close()
 
@@ -194,7 +206,7 @@ class Database:
             sql.execute("SELECT * FROM messages ORDER BY time DESC LIMIT %s", (limit,))
             rows = sql.fetchall()
         except Exception:
-            return
+            return []
         finally:
             sql.close()
 
@@ -211,6 +223,8 @@ class Database:
             sql = self.connection.cursor()
             sql.execute("SELECT COUNT(*) FROM messages")
             return int(sql.fetchone()[0])
+        except Exception:
+            return -1
         finally:
             sql.close()
 
@@ -237,7 +251,7 @@ class Database:
 
     # endregion
     # region GET CHATS
-    def get_chats(self, limit: Optional[int] = 50) -> Json:
+    def get_chats(self, limit: Optional[int] = 50) -> List[JsonD]:
         try:
             sql = self.connection.cursor()
             if isinstance(limit, int):
@@ -246,16 +260,16 @@ class Database:
                 sql.execute("SELECT is_group, chat_id, title, members FROM chats ORDER BY chat_id DESC")
             rows = sql.fetchall()
         except Exception:
-            return
+            return []
         finally:
             sql.close()
 
-        return {"chats": [{"is_group": not not row["is_group"],
-                           "id": row["chat_id"],
-                           "title": row["title"],
-                           "members": [{"id": i["id"], "name": i["name"], "sessions": loads(i["sessions"])}
-                                       for i in loads(row["members"])]}
-                          for row in rows]}
+        return [{"is_group": not not row["is_group"],
+                 "id": row["chat_id"],
+                 "title": row["title"],
+                 "members": [{"id": i["id"], "name": i["name"], "sessions": loads(i["sessions"])}
+                             for i in loads(row["members"])]}
+                for row in rows]
 
     def check_chat_title(self, title: str) -> bool:
         """Returns True if chat with given title already exists in the database."""
@@ -263,6 +277,8 @@ class Database:
             sql = self.connection.cursor()
             sql.execute("SELECT * FROM chats WHERE title = %s", (title,))
             return sql.fetchone() is not None
+        except Exception:
+            return True
         finally:
             sql.close()
 
@@ -272,6 +288,8 @@ class Database:
             sql = self.connection.cursor()
             sql.execute("SELECT * FROM chats WHERE chat_id = %s", (chat_id,))
             return sql.fetchone() is not None
+        except Exception:
+            return True
         finally:
             sql.close()
 
@@ -281,7 +299,7 @@ class Database:
             sql.execute("SELECT is_group, chat_id, title, description, members, admins FROM chats WHERE chat_id = %s", (chat_id,))
             row = sql.fetchone()
         except Exception:
-            return
+            return {}
         finally:
             sql.close()
 
@@ -300,6 +318,8 @@ class Database:
             sql = self.connection.cursor()
             sql.execute("SELECT COUNT(*) FROM chats")
             return int(sql.fetchone()[0])
+        except Exception:
+            return -1
         finally:
             sql.close()
 
@@ -354,7 +374,7 @@ class Database:
         finally:
             sql.close()
 
-        members: List = []
+        members: List[JsonD] = []
 
         for member in member_ids:
             members.append(self.get_user_by_id(member))
