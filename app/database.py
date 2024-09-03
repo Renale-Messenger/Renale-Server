@@ -161,15 +161,19 @@ class Database:
         else:
             return (-1, "Invalid credentials")
 
-    def update_sessions(self, id: int, new_session: Json) -> None:
+    def update_sessions(self, id: int, token: str, new_session: Json) -> None:
         try:
             sql = self.connection.cursor()
-            sessions: List[Json] = sql.execute(
-                "SELECT id, name, sessions FROM users WHERE id = %s", (id,)
-            )
-            sessions.append(new_session)
-            sql.execute("UPDATE users SET sessions = %s WHERE id = %s", (sessions, id))
-            self.connection.commit()
+            sql.execute("SELECT token FROM users WHERE id = %s", (id,))
+            user_token = sql.fetchone()["token"]
+            if user_token == token:
+                sql.execute(
+                    "SELECT id, name, sessions FROM users WHERE id = %s", (id,)
+                )
+                sessions: List[Json] = sql.fetchall()
+                sessions.append(new_session)
+                sql.execute("UPDATE users SET sessions = %s WHERE id = %s", (sessions, id))
+                self.connection.commit()
         finally:
             sql.close()
 
@@ -183,7 +187,7 @@ class Database:
 
     # endregion
     # region GET MESSAGE
-    def get_messages(self, limit: int = 50) -> Dict[Literal["messages"], List[Dict[str, Any]]]:
+    def get_messages(self, limit: int = 50) -> List[Dict[str, Any]]:
         limit = int(limit)
         try:
             sql = self.connection.cursor()
@@ -194,18 +198,12 @@ class Database:
         finally:
             sql.close()
 
-        return {
-            "messages": [
-                {
-                    "id": row["id"],
-                    "chat": row["chat"],
-                    "user": row["user"],
-                    "text": row["text"],
-                    "time": row["time"],
-                }
-                for row in rows
-            ]
-        }
+        return [{"id": row["id"],
+                 "chat": row["chat"],
+                 "user": row["user"],
+                 "text": row["text"],
+                 "time": row["time"],
+                 } for row in rows]
 
     @property
     def count_messages(self) -> int:
@@ -218,16 +216,24 @@ class Database:
 
     # endregion
     # region POST MESSAGE
-    def send_message(self, chat: Json, user: Json, text: str) -> None:
+    def send_message(self, user_id: int, user_token: str, chat_id: int, text: str) -> bool:
+        """Send a message to a chat."""
         try:
             sql = self.connection.cursor()
-            sql.execute(
-                "INSERT INTO messages (chat, user, text, time) VALUES (%s, %s, %s, %s)",
-                (chat, user, text, timestamp()),
-            )
-            self.connection.commit()
+            sql.execute("SELECT token FROM users WHERE id = %s", (user_id,))
+            user_token_ = sql.fetchone()["token"]
+            if user_token == user_token_:
+                sql.execute("INSERT INTO messages (user, chat, text, time) VALUES (%s, %s, %s, CURRENT_TIMESTAMP)",
+                            (user_id, chat_id, text))
+                self.connection.commit()
+            else:
+                return False
+        except Exception:
+            return False
         finally:
             sql.close()
+
+        return True
 
     # endregion
     # region GET CHATS
@@ -299,7 +305,18 @@ class Database:
 
     # endregion
     # region POST CHATS
-    def create_chat(self, creator_id: int, is_group: bool, title: str, description: str, member_ids: List[int]) -> None:
+    def create_chat(self, creator_id: int, creator_token: str, is_group: bool, title: str, description: str, member_ids: List[int]) -> None:
+        try:
+            sql = self.connection.cursor()
+            sql.execute("SELECT token FROM users WHERE id = %s", (creator_id,))
+            user_token = sql.fetchone()["token"]
+            if user_token != creator_token:
+                return
+        except Exception:
+            return
+        finally:
+            sql.close()
+
         creator = self.get_user_by_id(creator_id)
         admins: List[JsonD] = []
         members: List[JsonD] = []
@@ -325,7 +342,18 @@ class Database:
         finally:
             sql.close()
 
-    def add_members(self, member_ids: List[int], chat_id: int) -> None:
+    def add_members(self, user_id: int, user_token: str, member_ids: List[int], chat_id: int) -> None:
+        try:
+            sql = self.connection.cursor()
+            sql.execute("SELECT token FROM users WHERE id = %s", (user_id,))
+            user_token_ = sql.fetchone()["token"]
+            if user_token != user_token_:
+                return
+        except Exception:
+            return
+        finally:
+            sql.close()
+
         members: List = []
 
         for member in member_ids:
@@ -339,6 +367,29 @@ class Database:
             self.connection.commit()
         finally:
             sql.close()
+
+    # endregion
+    # region DELETE
+    def delete_user(self, user_id: int, token: str) -> bool:
+        try:
+            sql = self.connection.cursor()
+            sql.execute("SELECT token FROM users WHERE id = %s", (user_id,))
+            user_token = sql.fetchone()["token"]
+        except Exception:
+            return False
+        finally:
+            sql.close()
+
+        if user_token == token:
+            try:
+                sql = self.connection.cursor()
+                sql.execute("DELETE FROM users WHERE id = %s", (user_id,))
+                self.connection.commit()
+                return True
+            except Exception:
+                return False
+        else:
+            return False
     # endregion
 
 

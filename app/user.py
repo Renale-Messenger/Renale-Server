@@ -41,6 +41,13 @@ class User:
         self.id, self.token = app_database.login_user(name, password)
         return self.id >= 0
 
+    def change_password(self, old_pass: str, new_pass: str) -> bool:
+        if self.password == old_pass:
+            app_database.change_password(self.id, new_pass)
+            self.password = new_pass
+            return True
+        return False
+
     def sign_out(self) -> None:
         pass
 

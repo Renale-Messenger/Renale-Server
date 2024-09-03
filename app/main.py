@@ -88,15 +88,26 @@ class RenaleServer:
                         response_data = await self.register_user(body)
                     case "/login":
                         response_data = await self.login_user(body)
+                    case "/changePassword":
+                        response_data = await self.change_password(body)
+                    case _:
+                        return self.publish("404 Not Found", status_code=404)
                 return self.publish(
                     json.dumps(response_data), content_type="application/json",
                     status_code=200 if response_data["status"] else 400
                 )
-        return self.publish("404 Not Found", status_code=404)
+            case "DELETE":
+                match route_name:
+                    case "/deleteUser":
+                        response_data = await self.delete_user(body)
+                return self.publish(
+                    json.dumps(response_data), content_type="application/json",
+                    status_code=200 if response_data["status"] else 400
+                )
+            case _:
+                return self.publish("405 Method Not Allowed", status_code=405)
 
-    def publish(
-        self, content: str, status_code: int = 200, content_type: str = "text/html"
-    ) -> str:
+    def publish(self, content: str, status_code: int = 200, content_type: str = "text/html") -> str:
         response = (
             f"HTTP/1.1 {status_code} OK\n"
             f"Content-Type: {content_type}\n"
@@ -175,7 +186,7 @@ class RenaleServer:
         except (ValueError, IndexError):
             return {"error": "Invalid or missing limit parameter"}
 
-        return app_database.get_users(limit)
+        return {"messages": app_database.get_users(limit)}
 
     # endregion
     # region POST funcs
@@ -227,21 +238,23 @@ class RenaleServer:
         {
             "title": "Test Chat",
             "description": "This is a test chat.",
-            "is_group": True,
-            "creator": 1,
+            "is_group": true,
+            "creator_id": 1,
+            "creator_tooken": "token123",
             "members": [1, 2, 3]
         }
         """
         try:
             data: Dict[str, Any] = json.loads(body)
 
-            if (
-                ("title" not in data) or
-                ("description" not in data) or
-                ("is_group" not in data) or
-                ("creator" not in data) or
-                ("members" not in data)
-            ):
+            if any((
+                ("title" not in data),
+                ("description" not in data),
+                ("is_group" not in data),
+                ("creator_id" not in data),
+                ("creator_token" not in data),
+                ("members" not in data),
+            )):
                 return {"status": False, "message": "All fields are required."}
 
             title: str = data["title"]
@@ -253,8 +266,8 @@ class RenaleServer:
                 return {"status": False, "message": f"Name {title} is busy."}
 
             app_database.create_chat(
-                    data["creator"], data["is_group"], title, data["description"], data["members"]
-                ),
+                data["creator"], data["creator_token"], data["is_group"], title, data["description"], data["members"]
+            )
             return {
                 "status": True,
                 "chat": title,
@@ -265,18 +278,17 @@ class RenaleServer:
     async def send_message(self, body: str) -> Json:
         """Store message in database.
         {
-            "chat_id": -2,
-            "id": 1,
-            "text": "Hello, world!"
-        }
+            "chat_id": -1,
+            "user_id": 1,
+            "token": "token123",
+            "text": "Hello, World!"
         """
         try:
             data: JsonD = json.loads(body)
             chat_id: int = data["chat_id"]
-            user_id: int = data["id"]
+            user_id: int = data["user_id"]
+            user_token: str = data["token"]
             text: str = data["text"]
-
-            chat = app_database.get_chat_by_id(chat_id)
 
             if app_database.check_chat(chat_id):
                 return {"status": False, "message": "Chat not found."}
@@ -284,10 +296,70 @@ class RenaleServer:
             if user_id < 0 or not text:
                 return {"status": False, "message": "Valid ID and text are required."}
 
-            app_database.send_message(chat, user_id, text)
+            app_database.send_message(user_id, user_token, chat_id, text)
 
             return {"status": True,
                     "message": "Sent successfully."}
+        except json.JSONDecodeError:
+            return {"status": False, "message": "Invalid JSON"}
+
+    async def change_password(self, body: str) -> Json:
+        """Update user password.
+        {
+            "id": 1,
+            "old_pass": "old_password",
+            "new_pass": "new_password"
+        }
+        """
+        try:
+            data: JsonD = json.loads(body)
+            user_id: int = int(data["id"])
+            old_pass: str = str(data["old_pass"])
+            new_pass: str = str(data["new_pass"])
+
+            if user_id < 0 or not old_pass:
+                return {"status": False, "message": "Valid ID and password are required."}
+
+            user_json: JsonD = app_database.get_user_by_id(user_id)
+
+            if not user_json:
+                return {"status": False, "message": "User not found."}
+
+            user: User = User()
+            user.sign_in(user_json["name"], old_pass)
+
+            user.change_password(old_pass, new_pass)
+
+            return {"status": True, "message": "Password updated successfully."}
+        except json.JSONDecodeError:
+            return {"status": False, "message": "Invalid JSON"}
+
+    async def delete_user(self, body: str) -> Json:
+        """Delete user from db.
+        {
+            "id": 1,
+            "token": "user_token"
+        }
+        """
+        try:
+            data: JsonD = json.loads(body)
+            user_id: int = int(data["id"])
+            user_token: str = str(data["token"])
+
+            if user_id < 0:
+                return {"status": False, "message": "Valid ID is required."}
+
+            user_json: JsonD = app_database.get_user_by_id(user_id)
+
+            if not user_json:
+                return {"status": False, "message": "User not found."}
+
+            user: User = User()
+            user.sign_in(user_json["name"], user_json["password"])
+
+            app_database.delete_user(user_id, user_token)
+
+            return {"status": True, "message": "User deleted successfully."}
         except json.JSONDecodeError:
             return {"status": False, "message": "Invalid JSON"}
 
