@@ -174,5 +174,10 @@ cython_debug/
 # Built Visual Studio Code Extensions
 *.vsix
 
+# Configs
 config.json
 config.ini
+
+# Databases
+*.sqlite
+*.db
