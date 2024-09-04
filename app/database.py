@@ -1,6 +1,7 @@
-import sqlite3
 from typing import Any, Dict, List, Optional, Tuple
 from json import dumps, loads
+from pathlib import Path
+import sqlite3
 
 from app.applib import Json, JsonD, random_id
 
@@ -32,7 +33,7 @@ Session info:
 
 class Database:
     def __init__(self) -> None:
-        self.sqlite_db_path: str = './server.sqlite'
+        self.sqlite_db_path: Path = Path(__file__).parent/"server.sqlite"
         try:
             self.connection = sqlite3.connect(self.sqlite_db_path)
             self.connection.row_factory = sqlite3.Row
