@@ -1,4 +1,3 @@
-from platform import version, system, architecture, release
 from typing import Any, Dict, Tuple
 from pathlib import Path
 import asyncio

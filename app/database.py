@@ -131,7 +131,7 @@ class Database:
         try:
             sql = self.connection.cursor()
             sql.execute("SELECT COUNT(*) FROM users")
-            return int(sql.fetchone()[0])
+            return int(sql.fetchone()['COUNT(*)'])
         except Exception:
             return -1
         finally:
@@ -223,7 +223,7 @@ class Database:
         try:
             sql = self.connection.cursor()
             sql.execute("SELECT COUNT(*) FROM messages")
-            return int(sql.fetchone()[0])
+            return int(sql.fetchone()['COUNT(*)'])
         except Exception:
             return -1
         finally:
@@ -318,7 +318,7 @@ class Database:
         try:
             sql = self.connection.cursor()
             sql.execute("SELECT COUNT(*) FROM chats")
-            return int(sql.fetchone()[0])
+            return int(sql.fetchone()['COUNT(*)'])
         except Exception:
             return -1
         finally:

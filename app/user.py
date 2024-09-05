@@ -1,3 +1,4 @@
+from platform import version, system, architecture, release
 from time import time as timestamp
 from typing import List
 import secrets
