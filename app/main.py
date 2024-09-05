@@ -281,7 +281,7 @@ class RenaleServer:
                 return {"status": False, "data": {"message": f"Name {title} is busy."}}
 
             app_database.create_chat(
-                data["creator"], data["creator_token"], data["is_group"], title, data["description"], data["members"]
+                data["creator_id"], data["creator_token"], data["is_group"], title, data["description"], data["members"]
             )
             return {"status": True, "data": {"message": title}}
         except json.JSONDecodeError:
