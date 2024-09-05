@@ -111,7 +111,7 @@ class Database:
             sql.execute("SELECT * FROM users WHERE id = %s", (id,))
             return sql.fetchone() is not None
         except Exception:
-            return True
+            return False
         finally:
             sql.close()
 
@@ -122,7 +122,7 @@ class Database:
             sql.execute("SELECT * FROM users WHERE name = %s", (name,))
             return sql.fetchone() is not None
         except Exception:
-            return True
+            return False
         finally:
             sql.close()
 
@@ -279,7 +279,7 @@ class Database:
             sql.execute("SELECT * FROM chats WHERE title = %s", (title,))
             return sql.fetchone() is not None
         except Exception:
-            return True
+            return False
         finally:
             sql.close()
 
@@ -290,7 +290,7 @@ class Database:
             sql.execute("SELECT * FROM chats WHERE chat_id = %s", (chat_id,))
             return sql.fetchone() is not None
         except Exception:
-            return True
+            return False
         finally:
             sql.close()
 
