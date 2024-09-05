@@ -28,11 +28,12 @@ class User:
         self.token = self.random_token()
         self.id = self.free_id()
         session = {
-            "version": "1.0",
-            "system": "Linux",
-            "architecture": "x86_64",
-            "release": "18.04.5 LTS",
+            "version": version(),
+            "system": system(),
+            "architecture": architecture(),
+            "release": release(),
         }  # TODO: why is this static...?
+        # IDK, but now it dont
 
         app_database.create_user(self.id, name, password, self.token, {str(int(timestamp())): session})
         return True
