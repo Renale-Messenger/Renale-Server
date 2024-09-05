@@ -4,7 +4,7 @@ import asyncio
 import socket
 import json
 
-from app.database import Session, app_database
+from app.database import app_database
 from app.applib import Json, JsonD, JsonResp
 from app.user import User
 
@@ -202,15 +202,19 @@ class RenaleServer:
             "password": "password123"
         }
         """
+
         try:
             data: JsonD = json.loads(body)
             name: str = data["name"]
             password: str = data["password"]
 
-            if not app_database.check_name(name):
+            if app_database.name_exist(name):
                 return {"status": False, "data": {"message": "This name is already taken."}}
 
             success = User().sign_up(name, password)
+
+            if not success:
+                return {"status": False, "data": {"message": "Error."}}
 
             return {"status": True, "data": {"message": success}}
         except json.JSONDecodeError:
@@ -232,11 +236,16 @@ class RenaleServer:
             user: User = User()
             status: bool = user.sign_in(name, password)
 
-            if user:
-                return {"status": status, "data": {"message": "Logged in successfully.", "user": user.to_json() & {"token": user.token}}}  # type: ignore
+            if not status:
+                return {"status": False, "data": {"message": "Invalid credentials or user not found."}}
 
-        except Exception:
-            return {"status": False, "data": {"message": "Not Implemented"}}
+            if user:
+                userdata: JsonD = user.to_json()
+                userdata.update({"token": user.token})
+                return {"status": status, "data": {"message": "Logged in successfully.", "user": userdata}}  # type: ignore
+
+        except json.JSONDecodeError:
+            return {"status": False, "data": {"message": "Invalid JSON"}}
 
     async def create_chat(self, body: str) -> JsonResp:
         """Create chat in db.
@@ -268,7 +277,7 @@ class RenaleServer:
             if not title:
                 return {"status": False, "data": {"message": "Name is required."}}
 
-            if not app_database.check_chat_title(title):
+            if app_database.chat_title_exist(title):
                 return {"status": False, "data": {"message": f"Name {title} is busy."}}
 
             app_database.create_chat(
@@ -294,7 +303,7 @@ class RenaleServer:
             user_token: str = data["token"]
             text: str = data["text"]
 
-            if app_database.check_chat(chat_id):
+            if not app_database.chat_exist(chat_id):
                 return {"status": False, "data": {"message": "Chat not found."}}
 
             if user_id < 0 or not text:

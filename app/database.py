@@ -33,7 +33,7 @@ Session info:
 
 class Database:
     def __init__(self) -> None:
-        self.sqlite_db_path: Path = Path(__file__).parent/"server.sqlite"
+        self.sqlite_db_path: Path = Path(__file__).parent.parent/"server.sqlite"
         try:
             self.connection = sqlite3.connect(self.sqlite_db_path)
             self.connection.row_factory = sqlite3.Row
@@ -52,7 +52,7 @@ class Database:
         limit = int(limit)
         try:
             sql = self.connection.cursor()
-            sql.execute("SELECT id, name, sessions FROM users ORDER BY id DESC LIMIT %s", (limit,))
+            sql.execute("SELECT id, name, sessions FROM users ORDER BY id DESC LIMIT?", (limit,))
             rows = sql.fetchall()
         except Exception:
             return []
@@ -68,7 +68,7 @@ class Database:
     def get_user_by_id(self, id: int) -> JsonD:
         try:
             sql = self.connection.cursor()
-            sql.execute("SELECT id, name, sessions FROM users WHERE id = %s", (id,))
+            sql.execute("SELECT id, name, sessions FROM users WHERE id =?", (id,))
             row = sql.fetchone()
         except Exception:
             return {}
@@ -82,7 +82,7 @@ class Database:
     def get_user_by_name(self, name: str) -> JsonD:
         try:
             sql = self.connection.cursor()
-            sql.execute("SELECT id, name, sessions FROM users WHERE name = %s", (name,))
+            sql.execute("SELECT id, name, sessions FROM users WHERE name =?", (name,))
             row = sql.fetchone()
         except Exception:
             return {}
@@ -96,7 +96,7 @@ class Database:
     def get_id_by_name(self, name: str) -> int:
         try:
             sql = self.connection.cursor()
-            sql.execute("SELECT id FROM users WHERE name = %s", (name,))
+            sql.execute("SELECT id FROM users WHERE name =?", (name,))
             row = sql.fetchone()
             return row["id"]
         except Exception:
@@ -104,22 +104,22 @@ class Database:
         finally:
             sql.close()
 
-    def check_id(self, id: int) -> bool:
+    def id_exist(self, id: int) -> bool:
         """Returns True if user with given id does exist in the database."""
         try:
             sql = self.connection.cursor()
-            sql.execute("SELECT * FROM users WHERE id = %s", (id,))
+            sql.execute("SELECT * FROM users WHERE id =?", (id,))
             return sql.fetchone() is not None
         except Exception:
             return False
         finally:
             sql.close()
 
-    def check_name(self, name: str) -> bool:
+    def name_exist(self, name: str) -> bool:
         """Returns True if user with given name does exist in the database."""
         try:
             sql = self.connection.cursor()
-            sql.execute("SELECT * FROM users WHERE name = %s", (name,))
+            sql.execute("SELECT * FROM users WHERE name =?", (name,))
             return sql.fetchone() is not None
         except Exception:
             return False
@@ -144,7 +144,7 @@ class Database:
         try:
             sql = self.connection.cursor()
             sql.execute(
-                "INSERT INTO users (id, name, password, token, sessions, chats) VALUES (%s, %s, %s, %s, %s, %s)",
+                "INSERT INTO users (id, name, password, token, sessions, chats) VALUES (?, ?, ?, ?, ?, ?)",
                 (id, name, password, token, dumps([session]), "[]"),
             )
             self.connection.commit()
@@ -158,7 +158,7 @@ class Database:
         """Authenticate user by name and password and return user's id and token. If credentials are invalid, return id -1(invalid) and an error message."""
         try:
             sql = self.connection.cursor()
-            sql.execute("SELECT id, name, password, token, sessions FROM users WHERE name = %s", (name,))
+            sql.execute("SELECT id, name, password, token, sessions FROM users WHERE name =?", (name,))
             user = sql.fetchone()
         except Exception:
             return (-1, "User not found")
@@ -173,15 +173,15 @@ class Database:
     def update_sessions(self, id: int, token: str, new_session: Json) -> None:
         try:
             sql = self.connection.cursor()
-            sql.execute("SELECT token FROM users WHERE id = %s", (id,))
+            sql.execute("SELECT token FROM users WHERE id =?", (id,))
             user_token = sql.fetchone()["token"]
             if user_token == token:
                 sql.execute(
-                    "SELECT id, name, sessions FROM users WHERE id = %s", (id,)
+                    "SELECT id, name, sessions FROM users WHERE id =?", (id,)
                 )
                 sessions: List[Json] = sql.fetchall()
                 sessions.append(new_session)
-                sql.execute("UPDATE users SET sessions = %s WHERE id = %s", (sessions, id))
+                sql.execute("UPDATE users SET sessions =? WHERE id =?", (sessions, id))
                 self.connection.commit()
         except Exception:
             return
@@ -191,7 +191,7 @@ class Database:
     def change_password(self, id: int, new_password: str) -> None:
         try:
             sql = self.connection.cursor()
-            sql.execute("UPDATE users SET password = %s WHERE id = %s", (new_password, id))
+            sql.execute("UPDATE users SET password =? WHERE id =?", (new_password, id))
             self.connection.commit()
         except Exception:
             return
@@ -204,7 +204,7 @@ class Database:
         limit = int(limit)
         try:
             sql = self.connection.cursor()
-            sql.execute("SELECT * FROM messages ORDER BY time DESC LIMIT %s", (limit,))
+            sql.execute("SELECT * FROM messages ORDER BY time DESC LIMIT?", (limit,))
             rows = sql.fetchall()
         except Exception:
             return []
@@ -235,10 +235,10 @@ class Database:
         """Send a message to a chat."""
         try:
             sql = self.connection.cursor()
-            sql.execute("SELECT token FROM users WHERE id = %s", (user_id,))
+            sql.execute("SELECT token FROM users WHERE id =?", (user_id,))
             user_token_ = sql.fetchone()["token"]
             if user_token == user_token_:
-                sql.execute("INSERT INTO messages (user, chat, text, time) VALUES (%s, %s, %s, CURRENT_TIMESTAMP)",
+                sql.execute("INSERT INTO messages (user, chat, text, time) VALUES (?,?,?, CURRENT_TIMESTAMP)",
                             (user_id, chat_id, text))
                 self.connection.commit()
             else:
@@ -256,7 +256,7 @@ class Database:
         try:
             sql = self.connection.cursor()
             if isinstance(limit, int):
-                sql.execute("SELECT is_group, chat_id, title, members FROM chats ORDER BY chat_id DESC LIMIT %s", (limit,))
+                sql.execute("SELECT is_group, chat_id, title, members FROM chats ORDER BY chat_id DESC LIMIT?", (limit,))
             else:
                 sql.execute("SELECT is_group, chat_id, title, members FROM chats ORDER BY chat_id DESC")
             rows = sql.fetchall()
@@ -272,22 +272,22 @@ class Database:
                              for i in loads(row["members"])]}
                 for row in rows]
 
-    def check_chat_title(self, title: str) -> bool:
+    def chat_title_exist(self, title: str) -> bool:
         """Returns True if chat with given title already exists in the database."""
         try:
             sql = self.connection.cursor()
-            sql.execute("SELECT * FROM chats WHERE title = %s", (title,))
+            sql.execute("SELECT * FROM chats WHERE title =?", (title,))
             return sql.fetchone() is not None
         except Exception:
             return False
         finally:
             sql.close()
 
-    def check_chat(self, chat_id: int) -> bool:
+    def chat_exist(self, chat_id: int) -> bool:
         """Returns True if chat with given id already exists in the database."""
         try:
             sql = self.connection.cursor()
-            sql.execute("SELECT * FROM chats WHERE chat_id = %s", (chat_id,))
+            sql.execute("SELECT * FROM chats WHERE chat_id =?", (chat_id,))
             return sql.fetchone() is not None
         except Exception:
             return False
@@ -297,7 +297,7 @@ class Database:
     def get_chat_by_id(self, chat_id: int) -> Dict[str, Any]:
         try:
             sql = self.connection.cursor()
-            sql.execute("SELECT is_group, chat_id, title, description, members, admins FROM chats WHERE chat_id = %s", (chat_id,))
+            sql.execute("SELECT is_group, chat_id, title, description, members, admins FROM chats WHERE chat_id =?", (chat_id,))
             row = sql.fetchone()
         except Exception:
             return {}
@@ -329,7 +329,7 @@ class Database:
     def create_chat(self, creator_id: int, creator_token: str, is_group: bool, title: str, description: str, member_ids: List[int]) -> None:
         try:
             sql = self.connection.cursor()
-            sql.execute("SELECT token FROM users WHERE id = %s", (creator_id,))
+            sql.execute("SELECT token FROM users WHERE id =?", (creator_id,))
             user_token = sql.fetchone()["token"]
             if user_token != creator_token:
                 return
@@ -350,14 +350,14 @@ class Database:
             admins.append(creator)
             while True:
                 chat_id = -random_id()
-                if not self.check_chat(chat_id) and chat_id != -1:
+                if not self.chat_exist(chat_id) and chat_id != -1:
                     break
         else:
             title = ""
             description = ""
         try:
             sql = self.connection.cursor()
-            sql.execute("INSERT INTO chats (is_group, chat_id, title, description, members, admins) VALUES (%s, %s, %s, %s, %s, %s)",
+            sql.execute("INSERT INTO chats (is_group, chat_id, title, description, members, admins) VALUES (?,?,?,?,?,?)",
                         (is_group, chat_id, title, description, dumps(members), dumps(admins)))
             self.connection.commit()
         finally:
@@ -366,7 +366,7 @@ class Database:
     def add_members(self, user_id: int, user_token: str, member_ids: List[int], chat_id: int) -> None:
         try:
             sql = self.connection.cursor()
-            sql.execute("SELECT token FROM users WHERE id = %s", (user_id,))
+            sql.execute("SELECT token FROM users WHERE id =?", (user_id,))
             user_token_ = sql.fetchone()["token"]
             if user_token != user_token_:
                 return
@@ -394,7 +394,7 @@ class Database:
     def delete_user(self, user_id: int, token: str) -> bool:
         try:
             sql = self.connection.cursor()
-            sql.execute("SELECT token FROM users WHERE id = %s", (user_id,))
+            sql.execute("SELECT token FROM users WHERE id =?", (user_id,))
             user_token = sql.fetchone()["token"]
         except Exception:
             return False
@@ -404,7 +404,7 @@ class Database:
         if user_token == token:
             try:
                 sql = self.connection.cursor()
-                sql.execute("DELETE FROM users WHERE id = %s", (user_id,))
+                sql.execute("DELETE FROM users WHERE id =?", (user_id,))
                 self.connection.commit()
                 return True
             except Exception:

@@ -26,8 +26,13 @@ class User:
     # endregion
     # region POST funcs
     def sign_up(self, name: str, password: str) -> bool:
+        if not name or not password:
+            return False
+        if app_database.name_exist(name):
+            return False
+        self.name = name
         self.token = self.random_token()
-        self.id = self.free_id()
+        self._id = self.free_id()
         session = {
             "version": version(),
             "system": system(),
@@ -36,16 +41,17 @@ class User:
         }  # TODO: why is this static...?
         # IDK, but now it dont
 
-        app_database.create_user(self.id, name, password, self.token, {str(int(timestamp())): session})
+        app_database.create_user(self._id, name, password, self.token, {str(int(timestamp())): session})
         return True
 
     def sign_in(self, name: str, password: str) -> bool:
-        self.id, self.token = app_database.login_user(name, password)
-        return self.id >= 0
+        self.name = name
+        self._id, self.token = app_database.login_user(name, password)
+        return self._id >= 0
 
     def change_password(self, old_pass: str, new_pass: str) -> bool:
         if self.password == old_pass:
-            app_database.change_password(self.id, new_pass)
+            app_database.change_password(self._id, new_pass)
             self.password = new_pass
             return True
         return False
@@ -60,7 +66,7 @@ class User:
             self.password = new_pass
             # TODO: update_password doesnt exist
             # with Database() as db:
-            #     db.update_password(self.id, new_pass)
+            #     db.update_password(self._id, new_pass)
             return True
         return False
 
@@ -69,7 +75,7 @@ class User:
 
     def free_id(self) -> int:
         id = random_id()
-        if app_database.check_id(id):
-            return self.free_id()
-        return id
+        if not app_database.id_exist(id):
+            return id
+        return self.free_id()
     # endregion
