@@ -21,8 +21,6 @@ class RenaleServer:
             self.serverSocket.listen(2)
             self.serverSocket.setblocking(False)
             print(f"Server listening on {self.host}:{self.port}")
-            session = Session(version(), system(), architecture(), release())
-            print(session)
 
     # region server funcs
     async def handle_http_request(self, conn: socket.socket, addr: Tuple[str, int]) -> None:
@@ -210,7 +208,7 @@ class RenaleServer:
             name: str = data["name"]
             password: str = data["password"]
 
-            if app_database.check_name(name):
+            if not app_database.check_name(name):
                 return {"status": False, "data": {"message": "This name is already taken."}}
 
             success = User().sign_up(name, password)
@@ -271,7 +269,7 @@ class RenaleServer:
             if not title:
                 return {"status": False, "data": {"message": "Name is required."}}
 
-            if app_database.check_chat_title(title):
+            if not app_database.check_chat_title(title):
                 return {"status": False, "data": {"message": f"Name {title} is busy."}}
 
             app_database.create_chat(
