@@ -1,8 +1,5 @@
-import asyncio
-
-from app.main import RenaleServer
+from app.main import app, socketio
 
 
-if __name__ == "__main__":
-    server = RenaleServer(host="127.0.0.1", port=9789)
-    asyncio.run(server.start())
+if __name__ == '__main__':
+    socketio.run(app, host='127.0.0.1', port=9789, debug=True)

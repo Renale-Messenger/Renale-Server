@@ -35,7 +35,7 @@ class Database:
     def __init__(self) -> None:
         self.sqlite_db_path: Path = Path(__file__).parent.parent/"server.sqlite"
         try:
-            self.connection = sqlite3.connect(self.sqlite_db_path)
+            self.connection = sqlite3.connect(self.sqlite_db_path, check_same_thread=False)
             self.connection.row_factory = sqlite3.Row
         except sqlite3.OperationalError as e:
             raise Exception(f"Error connecting to database: {e}")
@@ -222,11 +222,14 @@ class Database:
         try:
             sql = self.connection.cursor()
             sql.execute("SELECT COUNT(*) FROM messages")
-            return int(sql.fetchone()['COUNT(*)'])
-        except Exception:
+            count = int(sql.fetchone()['COUNT(*)'])
+        except Exception as e:
+            print(e)
             return -1
         finally:
             sql.close()
+        
+        return count
 
     # endregion
     # region POST MESSAGE

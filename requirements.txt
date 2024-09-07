@@ -1,2 +1,4 @@
 PyMySQL==1.1.1
 pydantic-settings==2.4.0
+Flask==3.0.3
+Flask-SocketIO==5.3.7
