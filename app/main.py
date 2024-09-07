@@ -29,11 +29,11 @@ class RenaleServer:
         route, method, headers, body = self.parse_http_request(request_text)  # type: ignore
         route_name = route.split("?", maxsplit=1)[0]
         print(f'Connection from {"localhost" if addr[0] == "127.0.0.1" else addr[0]}:{addr[1]}. Method: {method}, Route: {route_name}')
-        response = await self.route_request(route, method, body)
+        response = await self.route_request(route, method, body, headers)
         await asyncio.get_event_loop().sock_sendall(conn, response.encode("utf-8"))
         conn.close()
 
-    def parse_http_request(self, request_text: str) -> Tuple[str, str, Json, str]:
+    def parse_http_request(self, request_text: str) -> Tuple[str, str, JsonD, str]:
         lines = request_text.split("\r\n")
         if not lines or not lines[0]:
             return ("/", "GET", {}, "")
@@ -53,10 +53,11 @@ class RenaleServer:
 
         return (path, method, headers, body)
 
-    async def route_request(self, route: str, method: str, body: str) -> str:
+    async def route_request(self, route: str, method: str, body: str, headers: JsonD) -> str:
         response_data: JsonResp = {}
         route_data = route.split("?", maxsplit=1)
         route_name = route_data[0]
+        user_agent = headers.get("User-Agent", "")
         # TODO: unused...?
         # route_data = route_data[1] if len(route_data) - 1 else ""
         match method:
@@ -75,7 +76,7 @@ class RenaleServer:
                     case _:
                         return self.publish("404 Not Found", status_code=404)
                 return self.publish(
-                    json.dumps(response_data), content_type="application/json"
+                    json.dumps(response_data['data']), content_type="application/json"
                 )
             case "POST":
                 match route_name:
@@ -92,7 +93,7 @@ class RenaleServer:
                     case _:
                         return self.publish("404 Not Found", status_code=404)
                 return self.publish(
-                    json.dumps(response_data), content_type="application/json",
+                    json.dumps(response_data['data']), content_type="application/json",
                     status_code=200 if response_data["status"] else 400  # type: ignore
                 )
             case "DELETE":
@@ -102,7 +103,7 @@ class RenaleServer:
                     case _:
                         return self.E404
                 return self.publish(
-                    json.dumps(response_data), content_type="application/json",
+                    json.dumps(response_data['data']), content_type="application/json",
                     status_code=200 if response_data["status"] else 400  # type: ignore
                 )
             case _:

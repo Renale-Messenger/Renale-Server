@@ -381,8 +381,7 @@ class Database:
         try:
             sql = self.connection.cursor()
             sql.execute("SELECT members FROM chats WHERE chat_id = ?", (chat_id,))
-            current_members = loads(sql.fetchone()["members"])
-            updated_members = current_members + members
+            updated_members = loads(sql.fetchone()["members"]) + members
             sql.execute("UPDATE chats SET members = ? WHERE chat_id = ?", (dumps(updated_members), chat_id))
             self.connection.commit()
         finally:

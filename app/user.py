@@ -38,8 +38,9 @@ class User:
             "system": system(),
             "architecture": architecture(),
             "release": release(),
-        }  # TODO: why is this static...?
+        }  # why is this static...?
         # IDK, but now it dont
+        # WHY IS THIS ON THE SERVER SIDE AT ALL?
 
         app_database.create_user(self._id, name, password, self.token, {str(int(timestamp())): session})
         return True
