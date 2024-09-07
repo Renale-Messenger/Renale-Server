@@ -211,8 +211,7 @@ class Database:
         finally:
             sql.close()
 
-        return [{"id": row["id"],
-                 "chat": row["chat"],
+        return [{"chat": row["chat"],
                  "user": row["user"],
                  "text": row["text"],
                  "time": row["time"],
