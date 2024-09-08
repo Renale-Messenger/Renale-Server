@@ -1,17 +1,21 @@
 from pathlib import Path
-import json
 
 from app.database import app_database
-from app.user import User
+# from app.user import User
 
-
-
-from flask_socketio import SocketIO, send, emit, join_room, leave_room
+from flask_socketio import SocketIO, send, emit, join_room, leave_room  # type: ignore
+from app.applib import JsonD  # , Json
 from time import time as unixtime
-from app.applib import JsonResp, JsonD, Json
-from flask import Flask, request, jsonify
+from flask import Flask, request
 from uuid import uuid4
 
+
+# connect
+# disconnect
+# MessageSent
+# MessageSend
+# roomJoin
+# roomLeave
 
 app: Flask = Flask(__name__)
 app.config['SECRET_KEY'] = uuid4().hex
@@ -20,7 +24,7 @@ socketio = SocketIO(app, logger=True, engineio_logger=True)
 
 @socketio.on('connect')
 def handle_connect():
-    emit('response', {'data': 'Connected!'})
+    emit('connected', {'data': 'Connected!'})
 
 
 @socketio.on('disconnect')
@@ -28,13 +32,9 @@ def test_disconnect():
     print('Client disconnected')
 
 
-@socketio.on('messageSent')
-def handle_json(json: JsonD):
-    send(json, json=True)
-
-
 @socketio.on('messageSend')
-def handle_json(json: JsonD):
+def handle_message(json: JsonD):
+    emit('messageSent', json, namespace=json['room'])
     print(f'received json: {json}')
 
 
@@ -62,7 +62,7 @@ def logf(err: str, warn: int = 0):
 
     warn_level = 'E' if warn > 1 else 'W' if warn else 'I'
     with open(Path(__file__).parent.parent/'log.txt', 'a') as f:
-        f.store_string(f'[{warn_level}]-{str(unixtime())}:\n{err}\n')
+        f.write(f'[{warn_level}]-{str(unixtime())}:\n{err}\n')
 
 
 # region GET funcs
@@ -84,12 +84,12 @@ def status():
 
     return {"status": True,
             "data": {"message_count": app_database.count_messages,
-                        "user_count": app_database.count_users,
-                        "chat_count": app_database.count_chats}}
+                     "user_count": app_database.count_users,
+                     "chat_count": app_database.count_chats}}
 
 
 @app.route('/api/messages', methods=['GET'])
-def get_messages() -> JsonResp:
+def get_messages():
     """
     `get_messages()`
 
@@ -105,7 +105,7 @@ def get_messages() -> JsonResp:
 
 
 @app.route('/api/chats', methods=['GET'])
-def get_chats() -> JsonResp:
+def get_chats():
     """
     `get_chats()`
     Returns last `limit` chats from the database.
@@ -120,13 +120,14 @@ def get_chats() -> JsonResp:
 
 
 @app.route('/api/users', methods=['GET'])
-def get_users() -> JsonResp:
+def get_users():
     try:
         limit = int(request.args.get("limit", 50))
 
         return {"status": True, "data": {"users": app_database.get_users(limit)}}
     except (ValueError, IndexError):
         return {"status": False, "data": {"error": "Invalid or missing limit parameter"}}
+
 
 # endregion
 
