@@ -59,7 +59,7 @@ def handle_message(json: JsonD):
 
 @socketio.on('get_chats_list')
 def handle_get_chats_list(json: JsonD):
-    emit('chats_list', app_database.get_chat(json['start'], json['count']))
+    emit('chats_list', app_database.get_chats(json['start'], json['count']))
 
 
 @socketio.on('roomJoin')
