@@ -18,7 +18,7 @@ def db_link(default: Any = None) -> Callable[..., Any]:
             try:
                 return func(sql, *args, **kwargs)
             except Exception as e:
-                logf(f"Error in {func.__name__}({''.join((f'{i!r}' for i in args))}): {str(e)}")
+                logf(f"Error in {func.__name__}({', '.join((f'{i!r}' for i in args))}): {str(e)}")
                 return default
             finally:
                 sql.close()

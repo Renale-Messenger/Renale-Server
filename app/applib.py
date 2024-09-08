@@ -23,4 +23,4 @@ def logf(err: str | Exception, warn: int = 0):
 
     warn_level = 'E' if warn > 1 else 'W' if warn else 'I'
     with open(Path(__file__).parent.parent/'log.txt', 'a') as f:
-        f.write(f'[{warn_level}]-{str(unixtime())}:\n{err}\n')
+        f.write(f'[{warn_level}]-{str(unixtime())}:\n{err}\n\n')
