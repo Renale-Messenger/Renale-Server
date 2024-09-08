@@ -5,7 +5,7 @@ import secrets
 import string
 
 from app.applib import Json, JsonD, random_id
-from app.database import app_database
+import app.database as app_database
 
 
 __all__ = ["User"]
