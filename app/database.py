@@ -51,9 +51,11 @@ Session info:
 
 # region GET USER
 @db_link({})
-def get_users(sql: Cursor, limit: int = 50) -> List[JsonD]:
-    limit = int(limit)
-    sql.execute("SELECT id, name, sessions FROM users ORDER BY id DESC LIMIT?", (limit,))
+def get_users(sql: Cursor, start: Optional[int] = 50, count: Optional[int] = 50) -> List[JsonD]:
+    if isinstance(count, int) and isinstance(start, int):
+        sql.execute("SELECT id, name, sessions FROM users ORDER BY id DESC LIMIT ? OFFSET ?", (count, start))
+    else:
+        sql.execute("SELECT is_group, chat_id, title, members FROM chats ORDER BY chat_id DESC")
     rows = sql.fetchall()
 
     return [{"id": row["id"],
@@ -161,9 +163,11 @@ def change_password(sql: Cursor, id: int, new_password: str) -> None:
 # endregion
 # region GET MESSAGE
 @db_link([])
-def get_messages(sql: Cursor, limit: int = 50) -> List[Dict[str, Any]]:
-    limit = int(limit)
-    sql.execute("SELECT * FROM messages ORDER BY time DESC LIMIT?", (limit,))
+def get_messages(sql: Cursor, start: Optional[int] = 50, count: Optional[int] = 50) -> List[Dict[str, Any]]:
+    if isinstance(count, int) and isinstance(start, int):
+        sql.execute("SELECT * FROM messages ORDER BY time DESC LIMIT ? OFFSET ?", (count, start))
+    else:
+        sql.execute("SELECT is_group, chat_id, title, members FROM chats ORDER BY chat_id DESC")
     rows = sql.fetchall()
 
     return [{"chat": row["chat"],
@@ -202,20 +206,20 @@ def send_message(sql: Cursor, user_id: int, user_token: str, chat_id: int, text:
 # endregion
 # region GET CHATS
 @db_link([])
-def get_chats(sql: Cursor, limit: Optional[int] = 50) -> List[JsonD]:
-    if isinstance(limit, int):
-        sql.execute("SELECT is_group, chat_id, title, members FROM chats ORDER BY chat_id DESC LIMIT?", (limit,))
+def get_chats(sql: Cursor, start: Optional[int] = 50, count: Optional[int] = 50) -> JsonD:
+    if isinstance(count, int) and isinstance(start, int):
+        sql.execute("SELECT is_group, chat_id, title, members FROM chats ORDER BY chat_id DESC LIMIT ? OFFSET ?", (count, start))
     else:
         sql.execute("SELECT is_group, chat_id, title, members FROM chats ORDER BY chat_id DESC")
     rows = sql.fetchall()
 
     return {"chats": [{"is_group": not not row["is_group"],
-             "chat_id": row["chat_id"],
-             "chat_name": row["title"],
-             "members": [{"id": i["id"], "name": i["name"], "sessions": loads(i["sessions"])}
-                         for i in loads(row["members"])]}
+                       "chat_id": row["chat_id"],
+                       "chat_name": row["title"],
+                       "members": [{"id": i["id"], "name": i["name"], "sessions": loads(i["sessions"])}
+                      for i in loads(row["members"])]}
             for row in rows]
-    }
+            }
 
 
 @db_link(False)
