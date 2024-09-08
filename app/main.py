@@ -60,13 +60,6 @@ def handle_message(json: JsonD):
 @socketio.on('get_chats_list')
 def handle_get_chats_list(json: JsonD):
     emit('chats_list', app_database.get_chat(json['start'], json['count']))
-{
-    "type": "get_chats_list",
-    "data": {
-        "start": 0, # стартовая позиция (отсчет с 0)
-        "count": 50 # количество каналов на страницу
-    }
-}
 
 
 @socketio.on('roomJoin')
