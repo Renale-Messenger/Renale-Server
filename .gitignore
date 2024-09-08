@@ -181,3 +181,7 @@ config.ini
 # Databases
 *.sqlite
 *.db
+
+# Logs
+*.log
+log.*

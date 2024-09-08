@@ -1,13 +1,14 @@
 from pathlib import Path
 
-from app.database import app_database
 # from app.user import User
 
 from flask_socketio import SocketIO, send, emit, join_room, leave_room  # type: ignore
 from app.applib import JsonD  # , Json
-from time import time as unixtime
 from flask import Flask, request
 from uuid import uuid4
+
+
+import app.database as app_database
 
 
 # connect
@@ -16,6 +17,7 @@ from uuid import uuid4
 # MessageSend
 # roomJoin
 # roomLeave
+
 
 app: Flask = Flask(__name__)
 app.config['SECRET_KEY'] = uuid4().hex
@@ -54,17 +56,6 @@ def on_leave(json: JsonD):
     send(f'{username} has left the room.', to=room)
 
 
-def logf(err: str, warn: int = 0):
-    """Log.
-    `txt` - error text.
-    `warn` - warning level (0 - info, 1 - warning, >1 - error).
-    """
-
-    warn_level = 'E' if warn > 1 else 'W' if warn else 'I'
-    with open(Path(__file__).parent.parent/'log.txt', 'a') as f:
-        f.write(f'[{warn_level}]-{str(unixtime())}:\n{err}\n')
-
-
 # region GET funcs
 @app.route('/', methods=['GET'])
 def admin_page() -> str:
@@ -83,9 +74,9 @@ def status():
     "Returns the server status."
 
     return {"status": True,
-            "data": {"message_count": app_database.count_messages,
-                     "user_count": app_database.count_users,
-                     "chat_count": app_database.count_chats}}
+            "data": {"message_count": app_database.count_messages(),
+                     "user_count": app_database.count_users(),
+                     "chat_count": app_database.count_chats()}}
 
 
 @app.route('/api/messages', methods=['GET'])
