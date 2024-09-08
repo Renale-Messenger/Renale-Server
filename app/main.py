@@ -56,58 +56,37 @@ def on_leave(json: JsonD):
     send(f'{username} has left the room.', to=room)
 
 
-# region GET funcs
 @app.route('/', methods=['GET'])
-def admin_page() -> str:
-    """
-    `main()`
-
-    Returns the main HTML page.
-    """
-
+def admin_page():
     with open(Path(__file__).parent.parent/'static/index.html', 'r') as f:
         return f.read()
 
 
 @app.route('/api/v1', methods=['GET'])
 def status():
-    "Returns the server status."
-
-    return {"status": True,
-            "data": {"message_count": app_database.count_messages(),
-                     "user_count": app_database.count_users(),
-                     "chat_count": app_database.count_chats()}}
+    return {"message_count": app_database.count_messages(),
+            "user_count": app_database.count_users(),
+            "chat_count": app_database.count_chats()}
 
 
 @app.route('/api/messages', methods=['GET'])
 def get_messages():
-    """
-    `get_messages()`
-
-    Returns last `limit` messages from the database.
-    """
-
     try:
         limit = int(request.args.get("limit", 50))
 
-        return {"status": True, "data": {"messages": app_database.get_messages(limit)}}
+        return {"data": {"messages": app_database.get_messages(limit)}}
     except (ValueError, IndexError):
-        return {"status": False, "data": {"error": "Invalid or missing limit parameter"}}
+        return {"data": {"error": "Invalid or missing limit parameter"}}
 
 
 @app.route('/api/chats', methods=['GET'])
 def get_chats():
-    """
-    `get_chats()`
-    Returns last `limit` chats from the database.
-    """
-
     try:
         limit = int(request.args.get("limit", 50))
 
-        return {"status": True, "data": {"chats": app_database.get_chats(limit)}}
+        return {"data": {"chats": app_database.get_chats(limit)}}
     except (ValueError, IndexError):
-        return {"status": False, "data": {"error": "Invalid or missing limit parameter"}}
+        return {"data": {"error": "Invalid or missing limit parameter"}}
 
 
 @app.route('/api/users', methods=['GET'])
@@ -115,12 +94,10 @@ def get_users():
     try:
         limit = int(request.args.get("limit", 50))
 
-        return {"status": True, "data": {"users": app_database.get_users(limit)}}
+        return {"data": {"users": app_database.get_users(limit)}}
     except (ValueError, IndexError):
-        return {"status": False, "data": {"error": "Invalid or missing limit parameter"}}
+        return {"data": {"error": "Invalid or missing limit parameter"}}
 
-
-# endregion
 
 """
 async def route_request(route: str, method: str, body: str, headers: JsonD) -> str:
