@@ -1,10 +1,12 @@
-from pathlib import Path
+__version__ = "0.0.1.dev1"
 
-# from app.user import User
+from pathlib import Path
+from app.user import User
 
 from flask_socketio import SocketIO, send, emit, join_room, leave_room  # type: ignore
-from app.applib import JsonD  # , Json
-from flask import Flask, request
+from app.applib import JsonD, Json
+from json import loads, dumps, JSONDecodeError
+from flask import Flask, request, render_template
 from uuid import uuid4
 
 
@@ -12,6 +14,7 @@ import app.database as app_database
 
 
 # connect
+# welcome
 # disconnect
 # MessageSent
 # MessageSend
@@ -26,7 +29,21 @@ socketio = SocketIO(app, logger=True, engineio_logger=True)
 
 @socketio.on('connect')
 def handle_connect():
-    emit('connected', {'data': 'Connected!'})
+    emit('welcome', {'data': {
+        'protocol_version': __version__,
+    }})
+
+
+@socketio.on('auth')
+def handle_auth(json: JsonD):
+    user = User()
+    if user.authenticate():
+        emit('success_auth', {
+            "user_id": "123",
+            "user_name": "Василий"
+        })
+    else:
+        emit('error', {'data': 'Invalid credentials'})
 
 
 @socketio.on('disconnect')
@@ -40,12 +57,23 @@ def handle_message(json: JsonD):
     print(f'received json: {json}')
 
 
+@socketio.on('get_chats_list')
+def handle_get_chats_list(json: JsonD):
+    emit('chats_list', app_database.get_chat(json['start'], json['count']))
+{
+    "type": "get_chats_list",
+    "data": {
+        "start": 0, # стартовая позиция (отсчет с 0)
+        "count": 50 # количество каналов на страницу
+    }
+}
+
+
 @socketio.on('roomJoin')
 def on_join(json: JsonD):
-    username = json['username']
-    room = json['room']
+    room = json['chat_id']
     join_room(room)
-    send(f'{username} has entered the room.', to=room)
+    emit('success_join', {})
 
 
 @socketio.on('roomLeave')
@@ -56,10 +84,40 @@ def on_leave(json: JsonD):
     send(f'{username} has left the room.', to=room)
 
 
+def register_user(json: JsonD):
+    """Register new user and save to database.
+    {
+        "name": "John Doe",
+        "password": "qwerty123"
+    }
+    """
+
+    try:
+        name: str = json["name"]
+        password: str = json["password"]
+
+        if app_database.name_exist(name):
+            return {"status": False, "data": {"message": "This name is already taken."}}
+
+        success = User().sign_up(name, password)
+
+        if not success:
+            return {"status": False, "data": {"message": "Error."}}
+
+        return {"status": True, "data": {"message": success}}
+    except JSONDecodeError:
+        return {"status": False, "data": {"message": "Invalid JSON"}}
+
+
+# region WEB INTERFACE
 @app.route('/', methods=['GET'])
 def admin_page():
-    with open(Path(__file__).parent.parent/'static/index.html', 'r') as f:
-        return f.read()
+    return render_template('index.html')
+
+
+@app.route('/signin', methods=['GET'])
+def signin_page():
+    return render_template('login.html')
 
 
 @app.route('/api/v1', methods=['GET'])
@@ -97,6 +155,7 @@ def get_users():
         return {"users": app_database.get_users(limit)}
     except (ValueError, IndexError):
         return {"error": "Invalid or missing limit parameter"}
+# endregion
 
 
 """
@@ -203,31 +262,6 @@ async def get_users(route: str) -> JsonResp:
 
 # endregion
 # region POST funcs
-async def register_user(body: str) -> JsonResp:
-    \"""Register new user and save to database.
-    {
-        "name": "John Doe",
-        "password": "qwerty123"
-    }
-    \"""
-
-    try:
-        data: JsonD = json.loads(body)
-        name: str = data["name"]
-        password: str = data["password"]
-
-        if app_database.name_exist(name):
-            return {"status": False, "data": {"message": "This name is already taken."}}
-
-        success = User().sign_up(name, password)
-
-        if not success:
-            return {"status": False, "data": {"message": "Error."}}
-
-        return {"status": True, "data": {"message": success}}
-    except json.JSONDecodeError:
-        return {"status": False, "data": {"message": "Invalid JSON"}}
-
 async def login_user(body: str) -> JsonResp:
     \"""Log user in.
     {

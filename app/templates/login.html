@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+        <link rel="shortcut icon" href="img/favicon.png" type="image/png">
+        <link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
+        <title>Renale: Sign in</title>
+        <script>
+            let FF_FOUC_FIX; //to prevent FOUC
+        </script>
+    </head>
+    <body>
+        <heading><h1 id="greeting">Sign in</h1></heading>
+        <div class="form">
+            <form action="https://glor.pythonanywhere.com/verify" method="post">
+                <div class="input-form">
+                    <input type="text" name="username" placeholder="Renale ID or name">
+                    <input type="password" name="password" placeholder="Password">
+                    <nav class="error"> </nav>
+                    <nav class="hint">
+                        <a href="https://glor.pythonanywhere.com/signup" class="register">Sign up for free.</a>
+                    </nav>
+                </div>
+                <div class="buttons">
+                    <button href="https://glor.pythonanywhere.com/verify">
+                        <span class="corner-1"></span>
+                        Enter
+                        <span class="corner-2"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </body>
+</html>

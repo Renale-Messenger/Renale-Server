@@ -1,0 +1,220 @@
+body {
+    background-size: cover;
+    background-color: #000000;
+    background-repeat:no-repeat;
+    background-attachment:fixed;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    flex-flow: row;
+}
+a {
+    width: 100%;
+    height: 50px;
+    display: table;
+    text-decoration: none;
+}
+button {
+    width: 200px;
+    height: 50px;
+    display: table;
+    text-decoration: none;
+    border: none;
+}
+.auth { 
+    background-color: blue;
+    display:flex;
+    justify-content: center;
+    align-items: center;
+    flex-flow: column;
+    gap: 10px;
+    text-transform: uppercase;
+    width: 15%;
+    position: fixed;
+    right: 0px
+}
+.hint {
+    font-family: "Audiowide", sans-serif;
+}
+.hint:hover {
+    font-family: "Audiowide", sans-serif;
+    color: #1aff00;
+}
+#greeting {
+    font-size: 75px;
+    text-align: center;
+    font-family: "Audiowide", sans-serif;
+    font-weight: 400;
+    width: 60%;
+    top: 0px;
+}
+main {
+    color: #1aff00;
+    position: absolute;
+}
+h1 {
+    color: #1aff00;
+    font-family: "Audiowide", sans-serif;
+    font-weight: 400;
+}
+.form {
+    margin-left: auto;
+    margin-right: auto;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+    border-radius: 2px;
+}
+.input-form {
+    margin: 15px 40px;
+    text-align: center;
+    border-radius: 2px;
+    color: #1aff00;
+}
+.input-form input {
+    font-family: "Audiowide", sans-serif;
+    padding: 10px;
+    width: 50%;
+    color: #1aff00;
+    font-weight: bold;
+    font-size: 20px;
+    background: none;
+    outline: none;
+    border: 1px solid white;
+    box-sizing: border-box;
+    border-radius: 2px;
+    text-align: center;
+    margin-bottom: 10px;
+    border-color: #1aff00;
+    color: #1aff00;
+}
+.input-form nav {
+    color:#1aff00;
+
+}
+.input-form button {
+    margin-top: 20px;
+    font-weight: bold;
+    text-transform: uppercase;
+    border: none;
+    background: #1aff00;
+    transition: .3s;
+    border-radius: 2px;
+    width: 250px;
+    height: 70px;
+}
+.input-form a {
+    color: #1aff00;
+    text-align:end;
+    transition: .3s;
+    border: none;
+    font-weight: bold;
+}
+.input-form button:hover {
+    background: #1aff00;
+    border-radius: 25px;
+}
+.form a {
+    display: block;
+    padding: 0 0 30px;
+    text-align: center;
+    color: #1aff00;
+    text-decoration: none;
+    transition: .3s;
+    border-radius: 25px;
+}
+.form a:hover {
+    color: #1aff00;
+    border-radius: 25px;
+}
+.buttons {
+    background-color: darkblue;
+    display:flex;
+    justify-content: center;
+    align-items: center;
+    flex-flow: column;
+    gap: 10px;
+    text-transform: uppercase;
+    width: 20%;
+    position: fixed;
+    left: 0px;
+    height: 100%;
+}
+.buttons * {
+    box-sizing: border-box;
+    transition: all .35s ease;
+}
+a,
+button {
+    text-align: center;
+    font-size: 30px;
+    position: relative;
+    background-color: #000000;
+    color: #1aff00;
+    padding: 0px;
+    font-family: "Audiowide", sans-serif;
+    font-weight: 400;
+    cursor: pointer;
+}
+a:hover {
+    transition-duration: 0.5s;
+}
+a:hover:before,
+a:hover:after,
+a:hover .corner-1,
+a:hover .corner-2,
+button:hover:before,
+button:hover:after,
+button:hover .corner-1,
+button:hover .corner-2 {
+transform: translate(0, 0);
+    opacity: 1;
+}
+a::before,
+a::after,
+a .corner-1,
+a .corner-2,
+button::before,
+button::after,
+button .corner-1,
+button .corner-2 {
+    content: '';
+    height: 14px;
+    width: 14px;
+    position: absolute;
+    transition: all .35s ease;
+    opacity: 0;
+}
+a::before,
+button::before {
+    right: 0;
+    top: 0;
+    border-top: 3px solid #1aff00;
+    border-right: 3px solid #1aff00;
+    transform: translate(-100%, 50%);
+}
+a::after,
+button::after {
+    left: 0;
+    bottom: 0;
+    border-bottom: 3px solid #1aff00;
+    border-left: 3px solid #1aff00;
+    transform: translate(100%, -50%);
+}
+a .corner-1,
+button .corner-1 {
+    left: 0;
+    top: 0;
+    border-top: 3px solid #1aff00;
+    border-left: 3px solid #1aff00;
+    transform: translate(100%, 50%);
+}
+a .corner-2,
+button .corner-2 {
+    right: 0;
+    bottom: 0;
+    border-bottom: 3px solid #1aff00;
+    border-right: 3px solid #1aff00;
+    transform: translate(-100%, -50%);
+}

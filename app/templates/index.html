@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+        <meta charset="UTF-8">
+        <title>Admin Panel</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
+        <script>
+            let FF_FOUC_FIX; //to prevent FOUC
+        </script>
+    </head>
+    <body>
+        <header>
+            <heading><h1 id="greeting">Welcome!</h1></heading>
+        </header>
+        <left>
+            <div class="buttons">
+                <a href="/api/messages?limit=50">
+                    <span class="corner-1"></span>
+                    Messages
+                    <span class="corner-2"></span>
+                </a>
+                <a href="/api/chats?limit=50">
+                    <span class="corner-1"></span>
+                    Chats
+                    <span class="corner-2"></span>
+                </a>
+                <a href="/api/users?limit=50">
+                    <span class="corner-1"></span>
+                    Users
+                    <span class="corner-2"></span>
+                </a>
+                <a href="/api/v1">
+                    <span class="corner-1"></span>
+                    Status
+                    <span class="corner-2"></span>
+                </a>
+            </div>
+        </left>
+        <right>
+            <div class="auth">
+                <a href="/signin">
+                    <span class="corner-1"></span>
+                    Sign in
+                    <span class="corner-2"></span>
+                </a>
+                <a href="/signup">
+                    <span class="corner-1"></span>
+                    Sign up
+                    <span class="corner-2"></span>
+                </a>
+            </div>
+        </right>
+        <main>
+            Hello, world!
+        </main>
+    </body>
+</html>

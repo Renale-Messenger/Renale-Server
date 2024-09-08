@@ -209,12 +209,13 @@ def get_chats(sql: Cursor, limit: Optional[int] = 50) -> List[JsonD]:
         sql.execute("SELECT is_group, chat_id, title, members FROM chats ORDER BY chat_id DESC")
     rows = sql.fetchall()
 
-    return [{"is_group": not not row["is_group"],
-             "id": row["chat_id"],
-             "title": row["title"],
+    return {"chats": [{"is_group": not not row["is_group"],
+             "chat_id": row["chat_id"],
+             "chat_name": row["title"],
              "members": [{"id": i["id"], "name": i["name"], "sessions": loads(i["sessions"])}
                          for i in loads(row["members"])]}
             for row in rows]
+    }
 
 
 @db_link(False)
@@ -322,6 +323,7 @@ def delete_user(sql: Cursor, user_id: int, token: str) -> bool:
 try:
     app_database: Connection = connect(Path(__file__).parent.parent/"server.sqlite", check_same_thread=False)
     app_database.row_factory = Row
+    print('Connected successfully to the SQLite database.')
 except OperationalError as e:
     logf(e, 2)
     raise Exception(f"Error connecting to database:\n{e}")
