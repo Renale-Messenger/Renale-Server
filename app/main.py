@@ -29,21 +29,66 @@ socketio = SocketIO(app, logger=True, engineio_logger=True)
 
 @socketio.on('connect')
 def handle_connect():
-    emit('welcome', {'data': {
+    emit('welcome', {
         'protocol_version': __version__,
-    }})
+    })
+
+
+@socketio.on('register')
+def register_user(json: JsonD):
+    """Register new user and save to database.
+    {
+        "name": "John Doe",
+        "password": "qwerty123"
+    }
+    """
+
+    try:
+        name: str = json["name"]
+        password: str = json["password"]
+
+        if app_database.name_exist(name):
+            emit('error', 'This name is already taken.')
+
+        success = User().sign_up(name, password)
+
+        if not success:
+            emit('error', 'Error.')
+
+        emit('registered', success)
+    except JSONDecodeError:
+        emit('error', 'Invalid JSON')
 
 
 @socketio.on('auth')
-def handle_auth(json: JsonD):
-    user = User()
-    if user.authenticate():
-        emit('success_auth', {
-            "user_id": "123",
-            "user_name": "Василий"
-        })
-    else:
-        emit('error', {'data': 'Invalid credentials'})
+def login_user(json: JsonD):
+    """Log user in.
+    {
+        "name": "John Doe",
+        "password": "qwerty123"
+    }
+    """
+
+    try:
+        name: str = json["name"]
+        password: str = json["password"]
+
+        user: User = User()
+        status: bool = user.sign_in(name, password)
+
+        if not status:
+            emit('error', 'Invalid credentials or user not found.')
+
+        if user:
+            userdata: JsonD = user.to_json()
+            userdata.update({"token": user.token})
+            emit('success_auth', {
+                'user_id': user._id,  # type: ignore
+                'user_token': user.token,
+            })
+
+    except JSONDecodeError:
+        emit('error', 'Invalid JSON')
 
 
 @socketio.on('disconnect')
@@ -77,31 +122,6 @@ def on_leave(json: JsonD):
     send(f'{username} has left the room.', to=room)
 
 
-def register_user(json: JsonD):
-    """Register new user and save to database.
-    {
-        "name": "John Doe",
-        "password": "qwerty123"
-    }
-    """
-
-    try:
-        name: str = json["name"]
-        password: str = json["password"]
-
-        if app_database.name_exist(name):
-            return {"status": False, "data": {"message": "This name is already taken."}}
-
-        success = User().sign_up(name, password)
-
-        if not success:
-            return {"status": False, "data": {"message": "Error."}}
-
-        return {"status": True, "data": {"message": success}}
-    except JSONDecodeError:
-        return {"status": False, "data": {"message": "Invalid JSON"}}
-
-
 # region WEB INTERFACE
 @app.route('/', methods=['GET'])
 def admin_page():
@@ -123,31 +143,25 @@ def status():
 @app.route('/api/messages', methods=['GET'])
 def get_messages():
     try:
-        limit = int(request.args.get("limit", 50))
-
-        return {"messages": app_database.get_messages(limit)}
+        return {"messages": app_database.get_messages(int(request.args["start"]), int(request.args["count"]))}
     except (ValueError, IndexError):
-        return {"error": "Invalid or missing limit parameter"}
+        return {"error": "Invalid or missing start/count parameter"}
 
 
 @app.route('/api/chats', methods=['GET'])
 def get_chats():
     try:
-        limit = int(request.args.get("limit", 50))
-
-        return {"chats": app_database.get_chats(limit)}
+        return {"chats": app_database.get_chats(int(request.args["start"]), int(request.args["count"]))}
     except (ValueError, IndexError):
-        return {"error": "Invalid or missing limit parameter"}
+        return {"error": "Invalid or missing start/count parameter"}
 
 
 @app.route('/api/users', methods=['GET'])
 def get_users():
     try:
-        limit = int(request.args.get("limit", 50))
-
-        return {"users": app_database.get_users(limit)}
+        return {"users": app_database.get_users(int(request.args["start"]), int(request.args["count"]))}
     except (ValueError, IndexError):
-        return {"error": "Invalid or missing limit parameter"}
+        return {"error": "Invalid or missing start/count parameter"}
 # endregion
 
 
@@ -255,33 +269,6 @@ async def get_users(route: str) -> JsonResp:
 
 # endregion
 # region POST funcs
-async def login_user(body: str) -> JsonResp:
-    \"""Log user in.
-    {
-        "name": "John Doe",
-        "password": "qwerty123"
-    }
-    \"""
-
-    try:
-        data: JsonD = json.loads(body)
-        name: str = data["name"]
-        password: str = data["password"]
-
-        user: User = User()
-        status: bool = user.sign_in(name, password)
-
-        if not status:
-            return {"status": False, "data": {"message": "Invalid credentials or user not found."}}
-
-        if user:
-            userdata: JsonD = user.to_json()
-            userdata.update({"token": user.token})
-            return {"status": status, "data": {"message": "Logged in successfully.", "user": userdata}}  # type: ignore
-
-    except json.JSONDecodeError:
-        return {"status": False, "data": {"message": "Invalid JSON"}}
-
 async def create_chat(body: str) -> JsonResp:
     \"""Create chat in db.
     {
