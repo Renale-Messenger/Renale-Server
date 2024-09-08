@@ -22,7 +22,6 @@ button {
     border: none;
 }
 .auth { 
-    background-color: blue;
     display:flex;
     justify-content: center;
     align-items: center;
@@ -46,7 +45,6 @@ button {
     font-family: "Audiowide", sans-serif;
     font-weight: 400;
     width: 60%;
-    top: 0px;
 }
 main {
     color: #1aff00;
@@ -54,8 +52,6 @@ main {
 }
 h1 {
     color: #1aff00;
-    font-family: "Audiowide", sans-serif;
-    font-weight: 400;
 }
 .form {
     margin-left: auto;
@@ -129,7 +125,6 @@ h1 {
     border-radius: 25px;
 }
 .buttons {
-    background-color: darkblue;
     display:flex;
     justify-content: center;
     align-items: center;
@@ -142,11 +137,10 @@ h1 {
     height: 100%;
 }
 .buttons * {
-    box-sizing: border-box;
+    box-sizing: content-box;
     transition: all .35s ease;
 }
-a,
-button {
+a {
     text-align: center;
     font-size: 30px;
     position: relative;
