@@ -74,9 +74,9 @@ def get_messages():
     try:
         limit = int(request.args.get("limit", 50))
 
-        return {"data": {"messages": app_database.get_messages(limit)}}
+        return {"messages": app_database.get_messages(limit)}
     except (ValueError, IndexError):
-        return {"data": {"error": "Invalid or missing limit parameter"}}
+        return {"error": "Invalid or missing limit parameter"}
 
 
 @app.route('/api/chats', methods=['GET'])
@@ -84,9 +84,9 @@ def get_chats():
     try:
         limit = int(request.args.get("limit", 50))
 
-        return {"data": {"chats": app_database.get_chats(limit)}}
+        return {"chats": app_database.get_chats(limit)}
     except (ValueError, IndexError):
-        return {"data": {"error": "Invalid or missing limit parameter"}}
+        return {"error": "Invalid or missing limit parameter"}
 
 
 @app.route('/api/users', methods=['GET'])
@@ -94,9 +94,9 @@ def get_users():
     try:
         limit = int(request.args.get("limit", 50))
 
-        return {"data": {"users": app_database.get_users(limit)}}
+        return {"users": app_database.get_users(limit)}
     except (ValueError, IndexError):
-        return {"data": {"error": "Invalid or missing limit parameter"}}
+        return {"error": "Invalid or missing limit parameter"}
 
 
 """
