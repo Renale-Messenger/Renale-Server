@@ -1,6 +1,7 @@
 from sqlite3 import connect, OperationalError, Row, Cursor, Connection
 from typing import Any, Dict, List, Optional, Tuple, Callable
 from json import dumps, loads
+from time import time as unixtime
 from pathlib import Path
 
 from app.applib import Json, JsonD, random_id, logf
@@ -188,19 +189,18 @@ def count_messages(sql: Cursor) -> int:
 # endregion
 # region POST MESSAGE
 @db_link(False)
-def send_message(sql: Cursor, user_id: int, user_token: str, chat_id: int, text: str) -> bool:
+def send_message(sql: Cursor, user_id: int, user_token: str, chat_id: int, text: str) -> str | JsonD:
     """Send a message to a chat."""
 
     sql.execute("SELECT token FROM users WHERE id =?", (user_id,))
     user_token_ = sql.fetchone()["token"]
     if user_token == user_token_:
-        sql.execute("INSERT INTO messages (user, chat, text, time) VALUES (?,?,?, CURRENT_TIMESTAMP)",
-                    (user_id, chat_id, text))
+        sql.execute("INSERT INTO messages (user, chat, text, time) VALUES (?, ?, ?, ?)",
+                    (user_id, chat_id, text, unixtime()))
         app_database.commit()
+        return {"user_id": user_id, "chat_id": chat_id, "text": text, "time": unixtime()}
     else:
-        return False
-
-    return True
+        return "Invalid token"
 
 
 # endregion

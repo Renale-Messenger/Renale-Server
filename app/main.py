@@ -1,12 +1,11 @@
 __version__ = "0.0.1.dev1"
 
-from pathlib import Path
 from app.user import User
 
 from flask_socketio import SocketIO, send, emit, join_room, leave_room  # type: ignore
-from app.applib import JsonD, Json
-from json import loads, dumps, JSONDecodeError
 from flask import Flask, request, render_template
+from json import loads, dumps, JSONDecodeError
+from app.applib import JsonD
 from uuid import uuid4
 
 
@@ -96,10 +95,9 @@ def test_disconnect():
     print('Client disconnected')
 
 
-@socketio.on('messageSend')
-def handle_message(json: JsonD):
-    emit('messageSent', json, namespace=json['room'])
-    print(f'received json: {json}')
+@socketio.on('message')
+def handle_message(json: str):
+    print(f'received json: {loads(json)}')
 
 
 @socketio.on('get_chats_list')
@@ -120,6 +118,78 @@ def on_leave(json: JsonD):
     room = json['room']
     leave_room(room)
     send(f'{username} has left the room.', to=room)
+
+
+@socketio.on('create_chat')
+def create_chat(json: JsonD):
+    """Create chat in db.
+    {
+        "title": "Test Chat",
+        "description": "This is a test chat.",
+        "is_group": true,
+        "creator_id": 1,
+        "creator_token": "token123",
+        "members": [1, 2, 3]
+    }
+    """
+
+    try:
+        if any((
+            ("title" not in json),
+            ("description" not in json),
+            ("is_group" not in json),
+            ("creator_id" not in json),
+            ("creator_token" not in json),
+            ("members" not in json),
+        )):
+            emit('error', "All fields are required.")
+
+        title: str = json["title"]
+
+        if not title:
+            emit('error', 'Name is required.')
+
+        if app_database.chat_title_exist(title):
+            emit('error', f'Name {title} is busy.')
+
+        app_database.create_chat(
+            json["creator_id"], json["creator_token"], json["is_group"], title, json["description"], json["members"]
+        )
+        emit('chat_created', title)
+    except JSONDecodeError:
+        emit('error', 'Invalid JSON')
+
+
+@socketio.on('message_send')
+def send_message(json: JsonD):
+    """Store message in database.
+    {
+        "chat_id": -1,
+        "user_id": 1,
+        "token": "token123",
+        "text": "Hello, World!"
+    """
+
+    try:
+        chat_id: int = json["chat_id"]
+        user_id: int = json["user_id"]
+        user_token: str = json["token"]
+        text: str = json["text"]
+
+        if not app_database.chat_exist(chat_id):
+            emit('error', 'Chat not found.')
+
+        if user_id < 0 or not text:
+            emit('error', 'Valid ID and text are required.')
+
+        message: str | JsonD = app_database.send_message(user_id, user_token, chat_id, text)
+
+        if isinstance(message, str):
+            emit('error', message)
+        else:
+            send(dumps(message), to=chat_id)
+    except JSONDecodeError:
+        emit('error', 'Invalid JSON')
 
 
 # region WEB INTERFACE
@@ -223,120 +293,7 @@ async def route_request(route: str, method: str, body: str, headers: JsonD) -> s
 """
 
 """
-# endregion
-# region GET funcs
-async def get_messages(route: str) -> JsonResp:
-    \"""
-    `get_messages()`
-
-    Returns last `limit` messages from the database.
-    \"""
-
-    try:
-        query: str = route.split("?")[1] if "?" in route else ""
-        params: JsonD = dict(qc.split("=") for qc in query.split("&") if "=" in qc)
-        limit: int = int(params.get("limit", 50))
-
-        return {"status": True, "data": {"messages": app_database.get_messages(limit)}}
-    except (ValueError, IndexError):
-        return {"status": False, "data": {"error": "Invalid or missing limit parameter"}}
-
-async def get_chats(route: str) -> JsonResp:
-    \"""
-    `get_chats()`
-
-    Returns last `limit` chats from the database.
-    \"""
-
-    try:
-        query = route.split("?")[1] if "?" in route else ""
-        params = dict(qc.split("=") for qc in query.split("&") if "=" in qc)
-        limit = int(params.get("limit", 50))
-
-        return {"status": True, "data": {"chats": app_database.get_chats(limit)}}
-    except (ValueError, IndexError):
-        return {"status": False, "data": {"error": "Invalid or missing limit parameter"}}
-
-async def get_users(route: str) -> JsonResp:
-    try:
-        query = route.split("?")[1] if "?" in route else ""
-        params = dict(qc.split("=") for qc in query.split("&") if "=" in qc)
-        limit = int(params.get("limit", 50))
-
-        return {"status": True, "data": {"users": app_database.get_users(limit)}}
-    except (ValueError, IndexError):
-        return {"status": False, "data": {"error": "Invalid or missing limit parameter"}}
-
-# endregion
 # region POST funcs
-async def create_chat(body: str) -> JsonResp:
-    \"""Create chat in db.
-    {
-        "title": "Test Chat",
-        "description": "This is a test chat.",
-        "is_group": true,
-        "creator_id": 1,
-        "creator_token": "token123",
-        "members": [1, 2, 3]
-    }
-    \"""
-
-    try:
-        data: Dict[str, Any] = json.loads(body)
-
-        if any((
-            ("title" not in data),
-            ("description" not in data),
-            ("is_group" not in data),
-            ("creator_id" not in data),
-            ("creator_token" not in data),
-            ("members" not in data),
-        )):
-            return {"status": False, "data": {"message": "All fields are required."}}
-
-        title: str = data["title"]
-
-        if not title:
-            return {"status": False, "data": {"message": "Name is required."}}
-
-        if app_database.chat_title_exist(title):
-            return {"status": False, "data": {"message": f"Name {title} is busy."}}
-
-        app_database.create_chat(
-            data["creator_id"], data["creator_token"], data["is_group"], title, data["description"], data["members"]
-        )
-        return {"status": True, "data": {"message": title}}
-    except json.JSONDecodeError:
-        return {"status": False, "data": {"message": "Invalid JSON"}}
-
-async def send_message(body: str) -> JsonResp:
-    \"""Store message in database.
-    {
-        "chat_id": -1,
-        "user_id": 1,
-        "token": "token123",
-        "text": "Hello, World!"
-    \"""
-
-    try:
-        data: JsonD = json.loads(body)
-        chat_id: int = data["chat_id"]
-        user_id: int = data["user_id"]
-        user_token: str = data["token"]
-        text: str = data["text"]
-
-        if not app_database.chat_exist(chat_id):
-            return {"status": False, "data": {"message": "Chat not found."}}
-
-        if user_id < 0 or not text:
-            return {"status": False, "data": {"message": "Valid ID and text are required."}}
-
-        app_database.send_message(user_id, user_token, chat_id, text)
-
-        return {"status": True, "data": {"message": "Sent successfully."}}
-    except json.JSONDecodeError:
-        return {"status": False, "data": {"message": "Invalid JSON"}}
-
 async def change_password(body: str) -> JsonResp:
     \"""Update user password.
     {
