@@ -11,20 +11,17 @@ __all__: List[str] = ["app_database", "Session"]
 
 
 def db_link(default: Any = None) -> Callable[..., Any]:
-    "db_link() used not right number of arguments"
-
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         def wrapper(*args: List[Any], **kwargs: Dict[str, Any]) -> Any:
             sql: Cursor = app_database.cursor()
             try:
                 return func(sql, *args, **kwargs)
             except Exception as e:
-                logf(f"Error in {func.__name__}({', '.join((f'{i!r}' for i in args))}): {str(e)}")
+                logf(f"Error in {func.__name__}({', '.join((f'{i!r}' for i in args))}): {str(e)}", 2)
                 return default
             finally:
                 sql.close()
         return wrapper
-
     return decorator
 
 
@@ -52,11 +49,8 @@ Session info:
 
 # region GET USER
 @db_link({})
-def get_users(sql: Cursor, start: Optional[int] = 50, count: Optional[int] = 50) -> List[JsonD]:
-    if isinstance(count, int) and isinstance(start, int):
-        sql.execute("SELECT id, name, sessions FROM users ORDER BY id DESC LIMIT ? OFFSET ?", (count, start))
-    else:
-        sql.execute("SELECT is_group, chat_id, title, members FROM chats ORDER BY chat_id DESC")
+def get_users(sql: Cursor, start: int = 0, count: int = 50) -> List[JsonD]:
+    sql.execute("SELECT id, name, sessions FROM users ORDER BY id DESC LIMIT ? OFFSET ?", (count, start))
     rows = sql.fetchall()
 
     return [{"id": row["id"],
@@ -164,11 +158,8 @@ def change_password(sql: Cursor, id: int, new_password: str) -> None:
 # endregion
 # region GET MESSAGE
 @db_link([])
-def get_messages(sql: Cursor, start: Optional[int] = 50, count: Optional[int] = 50) -> List[Dict[str, Any]]:
-    if isinstance(count, int) and isinstance(start, int):
-        sql.execute("SELECT * FROM messages ORDER BY time DESC LIMIT ? OFFSET ?", (count, start))
-    else:
-        sql.execute("SELECT is_group, chat_id, title, members FROM chats ORDER BY chat_id DESC")
+def get_messages(sql: Cursor, start: int = 0, count: int = 50) -> List[Dict[str, Any]]:
+    sql.execute("SELECT * FROM messages ORDER BY time DESC LIMIT ? OFFSET ?", (count, start))
     rows = sql.fetchall()
 
     return [{"chat": row["chat"],
@@ -206,11 +197,8 @@ def send_message(sql: Cursor, user_id: int, user_token: str, chat_id: int, text:
 # endregion
 # region GET CHATS
 @db_link([])
-def get_chats(sql: Cursor, start: Optional[int] = 50, count: Optional[int] = 50) -> JsonD:
-    if isinstance(count, int) and isinstance(start, int):
-        sql.execute("SELECT is_group, chat_id, title, members FROM chats ORDER BY chat_id DESC LIMIT ? OFFSET ?", (count, start))
-    else:
-        sql.execute("SELECT is_group, chat_id, title, members FROM chats ORDER BY chat_id DESC")
+def get_chats(sql: Cursor, start: int = 50, count: int = 50) -> JsonD:
+    sql.execute("SELECT is_group, chat_id, title, members FROM chats ORDER BY chat_id DESC LIMIT ? OFFSET ?", (count, start))
     rows = sql.fetchall()
 
     return {"chats": [{"is_group": not not row["is_group"],
@@ -325,9 +313,10 @@ def delete_user(sql: Cursor, user_id: int, token: str) -> bool:
 
 
 try:
-    app_database: Connection = connect(Path(__file__).parent.parent/"server.sqlite", check_same_thread=False)
+    print(Path(__file__).parent.parent/'server.sqlite')
+    app_database: Connection = connect(Path(__file__).parent.parent/'server.sqlite', check_same_thread=False)
     app_database.row_factory = Row
     print('Connected successfully to the SQLite database.')
-except OperationalError as e:
+except Exception as e:
     logf(e, 2)
     raise Exception(f"Error connecting to database:\n{e}")
