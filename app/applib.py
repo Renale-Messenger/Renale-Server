@@ -1,14 +1,14 @@
-from typing import Any, Dict, List, Union
 from time import time as unixtime
 from random import randint
 from pathlib import Path
+from typing import Any
 
 
 __all__ = ["Json", "JsonD", "random_id", "logf"]
 
 
-JsonD = Dict[str, Any]
-Json = Union[JsonD, List[Any]]
+JsonD = dict[str, Any]
+Json = JsonD | list[Any]
 
 
 def random_id() -> int:

@@ -23,7 +23,7 @@ import app.database as app_database
 
 app: Flask = Flask(__name__)
 app.config['SECRET_KEY'] = uuid4().hex
-socketio = SocketIO(app, logger=True, engineio_logger=True)
+socketio: SocketIO = SocketIO(app, logger=True, engineio_logger=True)
 
 
 @socketio.on('connect')

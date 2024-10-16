@@ -1,18 +1,19 @@
-from sqlite3 import connect, OperationalError, Row, Cursor, Connection
-from typing import Any, Dict, List, Optional, Tuple, Callable
-from json import dumps, loads
+from sqlite3 import connect, Row, Cursor, Connection
+from collections.abc import Callable
 from time import time as unixtime
+from json import dumps, loads
+from typing import Any
 from pathlib import Path
 
 from app.applib import Json, JsonD, random_id, logf
 
 
-__all__: List[str] = ["app_database", "Session"]
+__all__: list[str] = ["app_database", "Session"]
 
 
-def db_link(default: Any = None) -> Callable[..., Any]:
+def db_link(default: Any = None) -> Callable[..., Callable[..., Any]]:
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-        def wrapper(*args: List[Any], **kwargs: Dict[str, Any]) -> Any:
+        def wrapper(*args: list[Any], **kwargs: dict[str, Any]) -> Any:
             sql: Cursor = app_database.cursor()
             try:
                 return func(sql, *args, **kwargs)
@@ -49,7 +50,7 @@ Session info:
 
 # region GET USER
 @db_link({})
-def get_users(sql: Cursor, start: int = 0, count: int = 50) -> List[JsonD]:
+def get_users(sql: Cursor, start: int = 0, count: int = 50) -> list[JsonD]:
     sql.execute("SELECT id, name, sessions FROM users ORDER BY id DESC LIMIT ? OFFSET ?", (count, start))
     rows = sql.fetchall()
 
@@ -112,7 +113,7 @@ def count_users(sql: Cursor) -> int:
 # endregion
 # region POST USER
 @db_link((-1, "Error creating user"))
-def create_user(sql: Cursor, id: int, name: str, password: str, token: str, session: Json) -> Tuple[int, str]:
+def create_user(sql: Cursor, id: int, name: str, password: str, token: str, session: Json) -> tuple[int, str]:
     "Register user in database and return user's id and token."
 
     sql.execute(
@@ -124,7 +125,7 @@ def create_user(sql: Cursor, id: int, name: str, password: str, token: str, sess
 
 
 @db_link((-1, "User not found"))
-def login_user(sql: Cursor, name: str, password: str) -> Tuple[int, str]:
+def login_user(sql: Cursor, name: str, password: str) -> tuple[int, str]:
     """Authenticate user by name and password and return user's id and token. If credentials are invalid, return id -1(invalid) and an error message."""
 
     sql.execute("SELECT id, name, password, token, sessions FROM users WHERE name =?", (name,))
@@ -144,7 +145,7 @@ def update_sessions(sql: Cursor, id: int, token: str, new_session: Json) -> None
         sql.execute(
             "SELECT id, name, sessions FROM users WHERE id =?", (id,)
         )
-        sessions: List[Json] = sql.fetchall()
+        sessions: list[Json] = sql.fetchall()
         sessions.append(new_session)
         sql.execute("UPDATE users SET sessions =? WHERE id =?", (sessions, id))
 
@@ -158,7 +159,7 @@ def change_password(sql: Cursor, id: int, new_password: str) -> None:
 # endregion
 # region GET MESSAGE
 @db_link([])
-def get_messages(sql: Cursor, start: int = 0, count: int = 50) -> List[Dict[str, Any]]:
+def get_messages(sql: Cursor, start: int = 0, count: int = 50) -> list[JsonD]:
     sql.execute("SELECT * FROM messages ORDER BY time DESC LIMIT ? OFFSET ?", (count, start))
     rows = sql.fetchall()
 
@@ -227,7 +228,7 @@ def chat_exist(sql: Cursor, chat_id: int) -> bool:
 
 
 @db_link({})
-def get_chat_by_id(sql: Cursor, chat_id: int) -> Dict[str, Any]:
+def get_chat_by_id(sql: Cursor, chat_id: int) -> JsonD:
     sql.execute("SELECT is_group, chat_id, title, description, members, admins FROM chats WHERE chat_id =?", (chat_id,))
     row = sql.fetchone()
 
@@ -250,15 +251,15 @@ def count_chats(sql: Cursor) -> int:
 # endregion
 # region POST CHATS
 @db_link()
-def create_chat(sql: Cursor, creator_id: int, creator_token: str, is_group: bool, title: str, description: str, member_ids: List[int]) -> None:
+def create_chat(sql: Cursor, creator_id: int, creator_token: str, is_group: bool, title: str, description: str, member_ids: list[int]) -> None:
     sql.execute("SELECT token FROM users WHERE id =?", (creator_id,))
     user_token = sql.fetchone()["token"]
     if user_token != creator_token:
         return
 
     creator = get_user_by_id(creator_id)
-    admins: List[JsonD] = []
-    members: List[JsonD] = []
+    admins: list[JsonD] = []
+    members: list[JsonD] = []
     chat_id: int = -1
 
     if is_group:
@@ -280,13 +281,13 @@ def create_chat(sql: Cursor, creator_id: int, creator_token: str, is_group: bool
 
 
 @db_link()
-def add_members(sql: Cursor, user_id: int, user_token: str, member_ids: List[int], chat_id: int) -> None:
+def add_members(sql: Cursor, user_id: int, user_token: str, member_ids: list[int], chat_id: int) -> None:
     sql.execute("SELECT token FROM users WHERE id =?", (user_id,))
     user_token_ = sql.fetchone()["token"]
     if user_token != user_token_:
         return
 
-    members: List[JsonD] = []
+    members: list[JsonD] = []
 
     for member in member_ids:
         members.append(get_user_by_id(member))

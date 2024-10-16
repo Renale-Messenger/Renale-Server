@@ -1,6 +1,5 @@
 from platform import version, system, architecture, release
 from time import time as timestamp
-from typing import List
 import secrets
 import string
 
@@ -16,7 +15,7 @@ class User:
     token: str
     password: str
     _id: int
-    sessions: List[Json]
+    sessions: list[Json]
 
     # region GET funcs
     def to_json(self) -> JsonD:
